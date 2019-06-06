@@ -1,4 +1,4 @@
-# Texture arrays
+# Texture lists
 
 **NOTE: Even though the concept uses OpenGL terminology, it works on all other APIs as well.**
 
@@ -59,7 +59,7 @@ Meaning that for textureSize 4096 with 32 layers, this would require 12 mips. An
 
 64 KiB + 32 * 22369621= 64 KiB + 699 050  KiB = 682.7 MiB = 0.6667 GiB.
 
-## Binding a texture array
+## Binding a texture list
 
 It takes 2 bindings, the uniform buffer binding for the texture regions and the texture binding.
 
