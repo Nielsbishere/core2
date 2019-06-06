@@ -52,7 +52,7 @@ If baking is enabled (highly recommended), you can specify the following paramet
 
 `-maxResolution=0` The resolution limit of every texture for this build; if you supply 4k textures but want an Android build, you can limit this to anything you want. Setting this to zero will allow any texture size
 
-`--runtime_shader_compilation` Will add support for runtime shader compilation (disabled by default), normally this is done by the baker by converting the shaders to the target language (HLSL/GLSL/SPV).
+`--runtime_shader_compilation` Will add support for runtime shader compilation (disabled by default), normally this is done by the baker by converting the shaders to the target language (HLSL/GLSL/SPV)
 
 #### Android
 

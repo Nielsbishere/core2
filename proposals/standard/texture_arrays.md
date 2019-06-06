@@ -65,5 +65,5 @@ It takes 2 bindings, the uniform buffer binding for the texture regions and the 
 
 ## Sparse textures
 
-
+On environments like desktop where 2k-4k is almost standard, having 32 layers isn't enough. In this case, we need sparse textures so that only layers that we need will have to be allocated. 
 
