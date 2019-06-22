@@ -3,8 +3,8 @@
 ## Calling the serializer
 
 ```cpp
-MyType myType;
-Serializer<PrintSerializer>::serialize(myType);
+JSONWriter jsonSerialize = 
+    otc::Serializer::serialize<JSONWriter>(...);
 ```
 
 ## Adding serialization support
@@ -19,9 +19,7 @@ f32 x, y, z, w, h;
 otc_serialize(0, x, y, z, w, h);
 ```
 
-Where 0 is the version id.
-
-Adding that to your class, where your members are x/y/z/w/h, it will work. Arithmetic types, containers and custom classes can all be supported.
+Where 0 is the version id. This will expose the member names to the serializer; though serializers can still ignore this if they don't need it.
 
 ### Not exposing the names
 
@@ -37,139 +35,112 @@ Where 0 is the version id.
 
 This means that renaming your variables won't matter and it adds a layer of obfuscation.
 
-### Versioning
+### TODO: Versioning
 
-`outdated<1, f32>` Will let the serializer know that since version 1, the float placed there won't be used. 
+`otc::outdated<1, f32>` Will let the serializer know that since version 1, the float placed there won't be used. 
 
-`updated<1, i32>(x)` Will let the serializer know that since version 1, there's an int placed there. 
+`otc::updated<1, i32>(x)` Will let the serializer know that since version 1, there's an int placed there. 
 
 ```cpp
 f32 x, y, z, w;
-i32 h;
+otc::outdated<1, f32> h_;	//Outdated h (1 byte in memory, 4 or 0 on disk)
+otc::updated<1, i32> h;		//Updated h (4 bytes)
 
-otc_serialize_tuple(1, x, y, z, w, outdated<1, f32>, updated<1, i32>(h))
+otc_serialize_tuple(1, x, y, z, w, h_, h);
 ```
+
+### TODO: Sections
+
+`otc::section<T>` Will let the serializer know that if the 'sections' variable is big enough, it will serialize this type. Example;
+
+```cpp
+u16 sections, p0 /* padding */;
+otc::section<f32> someFloat, someOtherFloat;
+
+otc_serialize_tuple_sections(1, sections, p0, someFloat, someOtherFloat);
+```
+
+If sections is 0, there won't be any float. If sections is 1, the last float won't be present.
+
+If the struct that uses `otc::section` doesn't have the sections unsigned sized integer, it will assume it doesn't need to serialize. 
+
+Usage of these sections is as follows:
+
+```cpp
+//Obtain variable and safety check
+f32 *someFloat = myType.section<f32>();
+f32 *someOtherFloat = myType.section<f32>(1);
+if(type)
+    ;	//Do stuff with our float
+```
+
+When allocating a new struct, it will be the maximum size of the struct; however, in memory or on disk it can be a different size. If you cast memory to a `T*` for binary serialization, it might not have all sections that it could have. The section function takes care of this by checking the number of sections; it returns nullptr if you don't have these sections.
+
+**Accessing sections directly through the member is a bad idea, as there is no guarantee of it being present in memory.**
+
+### TODO: Inheritance
 
 ## Custom serializer
 
-Reflection is done through serializer objects; this means that you can declare your own templated struct:
+Reflection is done through serializer objects; this means that you can declare your own templated struct. Serialization can have a 'Serialsize' step to index through all types and reserve space for them. This can be done by simply `using Serialsize = T;` in the Serialize struct.
 
 ```cpp
-template<typename T, bool inObject>
-struct PrintSerializer {
+struct JSONWriter {
 
-	//Data required for this serialization call
-	PrintSerializer(){}
+    //Preprocess the types by running them through a size checker
+	using Serialsize = JSONSerialsize;
 
-	//Called on primary data types (like float/int/string)
-	inline void serialize(const c8 *x, const usz elementOffset, T &t) {
-		if constexpr(inObject)
-	        std::cout << x << ":" << t << std::endl;
-	    else
-	        std::cout << elementOffset << ":" << t << std::endl;
-	}
+    //Data used for serializing
+	std::string result;
+	usz offset{}, size;
+    
+    //Initializes all data used for serializing
+	JSONWriter(JSONSerialsize &totalSize): 
+    	size(totalSize.size), result(totalSize.size, '0') { }
+
+    //Called on (u)ints/floats/chars/strings
+    //inObject: if T is a field of an object
+    //count != 0: the type is a C-style array
+    //T: u<x>/i<x>/f<x>/c<x>/bool or const c<x>*
+	template<bool inObject, usz count, typename T>
+	inline void serialize(const c8 *member, T &t){}
     
 	//Called on all iterables
-	inline void serializeArray(const c8 *x, const usz elementOffset){
-	    if constexpr(inObject)
-	    	std::cout << "Array at " << x;
-	    else
-	        std::cout << "Array at " << elementOffset;
-	}
+    //inObject: if T is a field of an object
+    //T: any class that has a begin(), end() and usz size() function.
+	template<bool inObject, typename T>
+	inline void serializeArray(const c8 *member, T &t) {}
     
 	//Called on all objects
-	inline void serializeObject(const c8 *x, const usz elementOffset){
-	    if constexpr(inObject)
-	    	std::cout << "Object at " << x;
-	    else
-	       	std::cout << "Object at " << elementOffset;
-	}
+    //inObject: if T is a field of an object
+    //!isTuple: the type has a name in the object
+	template<bool inObject, bool isTuple>
+	inline void serializeObject(const c8 *member){}
 
-	//Called after types
-	inline void serializeEnd(){ /* content */ }
-	inline void serializeArrayEnd(){ /* content */ }
+	//Called in between types in arrays / fields
+	inline void serializeEnd(){ }
+    
+    //Called after iterables (lists, maps, etc.)
+	inline void serializeIterableEnd(){ /* content */ }
+    
+    //Called after objects
+    //!isTuple: the type has a name in the object
+	template<bool isTuple>
 	inline void serializeObjectEnd(){ /* content */ }
 
 };
 ```
 
-## Serialized example
+## TODO: Errors
 
-```cpp
-[ "test", "hello" ], { "a": [ 1, 2, 3 ], "b": 5, "def": -12 }, 1.5
-```
+The serializer will produce errors if it finds a type it deems non-serializable. This means it's not iterable, not arithmetic, doesn't have a serialize function or it is defined as an invalid type. 
 
-In the example above, it will do the following calls (if those functions exist):
+The following types are marked invalid:
 
-```cpp
-//"[ "
-JSONSerializer<T, false>::serializeArray(nullptr, 0);
+| Type             | Error code                                                   | Reason                                                       |
+| ---------------- | ------------------------------------------------------------ | ------------------------------------------------------------ |
+| usz / size_t     | Serialized field contains architecture depending variable.   | usz is 32 or 64 bit depending on the architecture; resulting in issues with serialization. |
+| T*               | Serialized field is a pointer, this is not supported.        | Pointers are a problem for serialization, as the type could be virtual, non-serializable or an array. A void pointer is not serializable as well. |
+| function pointer | Serialized field is a function pointer, this is not supported. | Function pointers exposed to the serializer are a security vulnerability; it could be abused to cause remote code execution. |
 
-//""test""
-JSONSerializer<c8*, false>::serialize(nullptr, 0, "test");
-
-//", " 
-JSONSerializer<T, false>::serializeEnd();
-
-//""hello""
-JSONSerializer<c8*, false>::serialize(nullptr, 1, "hello");
-
-//" ]"
-JSONSerializer<T, false>::serializeArrayEnd();
-
-//", "
-JSONSerializer<T, false>::serializeEnd();
-
-//"{ "
-JSONSerializer<T, false>::serializeObject(nullptr, 1);
-
-//""a": [ "
-JSONSerializer<T, true>::serializeArray("a", -1);
-
-//"1"
-JSONSerializer<f64, false>::serialize(nullptr, 0, 1);
-
-//", "
-JSONSerializer<T, false>::serializeEnd();
-
-//"2"
-JSONSerializer<f64, false>::serialize(nullptr, 0, 2);
-
-//", "
-JSONSerializer<T, false>::serializeEnd();
-
-//"3"
-JSONSerializer<f64, false>::serialize(nullptr, 0, 3);
-
-//" ]"
-JSONSerializer<T, false>::serializeArrayEnd();
-
-//", "
-JSONSerializer<T, true>::serializeEnd();
-
-//""b": 5"
-JSONSerializer<u32, true>::serialize("b", -1, 5);
-
-//", "
-JSONSerializer<T, true>::serializeEnd();
-
-//""def": -12"
-JSONSerializer<i32, true>::serialize("def", -1, -12);
-
-//" }"
-JSONSerializer<T, false>::serializeObjectEnd();
-
-//", "
-JSONSerializer<T, false>::serializeEnd();
-
-//"1.5"
-JSONSerializer<f64, false>::serialize(nullptr, 2, 1.5);
-```
-
-"serialize" is called on all low-level objects, this means: arithmetic types (`u<x>`/`i<x>`/bool/`c<x>`) and strings.
-
-"serializeArray" is called on all iterables/containers; like maps, lists/arrays, bitsets, etc. This doesn't give you access to the array, but only lets you know it exists and what the element id / member name is. This is because "serialize" takes care of the contents of the array. 
-
-"serializeObject" is the same as serializeArray but is only called on objects.
-
-For every serialize function, there's an end function. "serializeArrayEnd/serializeObjectEnd" are always called after an object or array was finished. "serializeEnd" is called after the object has serialized **_If there is a next object_**. 
+To allow serialization of virtual inherited objects, you can use modern pointers (std::shared_ptr). This only works with virtual serialize functions.
