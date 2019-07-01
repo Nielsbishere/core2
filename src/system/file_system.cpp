@@ -15,7 +15,8 @@ namespace oic {
     }
 
     FileSystem::FileSystem() {
-        initFiles();
+        //initFiles();
+		resetLut();
     }
 
     void FileSystem::addFileChangeCallback(FileCallback callback) {
@@ -40,6 +41,7 @@ namespace oic {
 
     }
 
+	//TODO: What happens with "a/"? does it just turn into "a"?
     bool FileSystem::resolvePath(const String &path, String &outPath) const {
 
         if(path.size() == 0 || path.find('\\') != String::npos)
@@ -99,7 +101,7 @@ namespace oic {
         if(info.path == "" || !info.hasAccess(FileAccess::READ))
             return false;
 
-        auto &arr = info.isVirtual ? virtualFiles : localFiles;
+        const auto &arr = info.isVirtual ? virtualFiles : localFiles;
 
         for(usz i = info.folderHint, end = info.fileEnd; i != end; ++i)
             callback(this, arr[i]);
@@ -111,43 +113,6 @@ namespace oic {
         return true;
     }
 
-	const FileInfo &FileSystem::fileSearch(const List<FileInfo> &info, const String &apath, FileInfo::SizeType directoryId) {
-
-		if (directoryId >= info.size() || !info[directoryId].isFolder)
-			System::log()->fatal<0>(errors::fs::nonExistent);
-
-		//Get parent
-
-		const FileInfo &parent = info[directoryId];
-
-		if (apath.size() == 0)
-			return parent;
-
-		const usz ou = apath.find('/');
-
-		//File
-
-		if (ou == String::npos) {
-
-			for (usz i = parent.fileHint; i != parent.fileEnd; ++i)
-				if (info[i].path.substr(info[i].path.find_last_of('/')) == apath)
-					return info[i];
-
-			System::log()->fatal<1>(errors::fs::nonExistent);
-		}
-
-		//Folder
-
-		const String current = apath.substr(0, ou);
-		const String next = apath.substr(ou);
-
-		for (usz i = parent.folderHint; i != parent.fileHint; ++i)
-			if(info[i].path.substr(info[i].path.find_last_of('/')) == current)
-				return fileSearch(info, next, i);
-
-		System::log()->fatal<2>(errors::fs::nonExistent);
-	}
-
 	const FileInfo &FileSystem::get(const String &path) const {
 
 		String apath;
@@ -155,12 +120,63 @@ namespace oic {
 		if (!resolvePath(path, apath))
 			System::log()->fatal(errors::fs::invalid);
 
-		if (apath[0] == '~')
-			return fileSearch(virtualFiles, apath.substr(apath.find('/')));
-		else if(supportsLocalFiles())
-			return fileSearch(localFiles, apath.substr(apath.find('/')));
-		else
+		if (apath[0] == '.' && supportsLocalFiles()) {
+
+			auto ou = localFileLut.find(apath);
+
+			if (ou == localFileLut.end())
+				System::log()->fatal(errors::fs::nonExistent);
+
+			return localFiles[ou->second];
+		}
+		else if(apath[0] != '.')
 			System::log()->fatal(errors::fs::notSupported);
+
+		auto ou = virtualFileLut.find(apath);
+
+		if (ou == virtualFileLut.end())
+			System::log()->fatal(errors::fs::nonExistent);
+
+		return virtualFiles[ou->second];
+	}
+
+	bool FileSystem::exists(const String &path) const {
+
+		String apath;
+
+		if (!resolvePath(path, apath))
+			return false;
+
+		if (apath[0] == '~')
+			return virtualFileLut.find(apath) != virtualFileLut.end();
+		else if (supportsLocalFiles())
+			return localFileLut.find(apath) != localFileLut.end();
+
+		return false;
+	}
+
+	void FileSystem::resetLut() {
+
+		virtualFileLut.clear();
+
+		FileInfo::SizeType i{};
+
+		for (const FileInfo &info : virtualFiles) {
+			virtualFileLut[info.path] = i;
+			++i;
+		}
+
+		if (!supportsLocalFiles())
+			return;
+
+		localFileLut.clear();
+
+		i = 0;
+
+		for (const FileInfo &info : localFiles) {
+			localFileLut[info.path] = i;
+			++i;
+		}
 
 	}
 

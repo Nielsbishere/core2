@@ -1,5 +1,6 @@
 #pragma once
 #include "system/system.hpp"
+#include "system/wlog.hpp"
 
 namespace oic::windows {
 
@@ -9,24 +10,17 @@ namespace oic::windows {
 	class Log;
 
 	//!Windows implementation of a system
-	class WindowsSystem {
-
-	protected:
-
-		LocalFileSystem *getFiles() const final override;
-		Allocator *getAllocator() const final override;
-		ViewportManager *getViewportManager() const final override;
-		Log *getLog() const final override;
+	class WindowsSystem : public System {
 
 	private:
 
 		WindowsSystem();
 		~WindowsSystem() = default;
 
-		WLocalFileSystem fileSystem;
-		WAllocator allocator;
-		WViewportManager viewportManager;
-		WLog log;
+		//WLocalFileSystem wfileSystem;
+		//WAllocator wallocator;
+		//WViewportManager wviewportManager;
+		WLog wlog;
 
 		static const WindowsSystem windowsSystem;
 

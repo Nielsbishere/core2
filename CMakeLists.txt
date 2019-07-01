@@ -13,15 +13,44 @@ set(CMAKE_SUPPRESS_REGENERATION true)
 
 include_directories(include)
 
-file(GLOB_RECURSE ocore_SRC
+file(GLOB_RECURSE ocoreHpp
 	"include/*.hpp"
+)
+
+file(GLOB_RECURSE ocoreCpp
 	"src/*.cpp"
 )
 
-add_library(
-	ocore STATIC
-	${ocore_SRC}
+if(WIN32)
+
+	include_directories(platform/windows/include)
+	
+	file(GLOB_RECURSE platformHpp
+		"platform/windows/include/*.hpp"
+	)
+
+	file(GLOB_RECURSE platformCpp
+		"platform/windows/src/*.cpp"
+	)
+
+endif()
+
+
+add_executable(
+	ocore
+	${ocoreHpp}
+	${ocoreCpp}
+	${platformHpp}
+	${platformCpp}
 )
+
+source_group("Header Files" FILES ${ocoreHpp})
+source_group("Source Files" FILES ${ocoreCpp})
+
+if(WIN32)
+	source_group("Platform Header Files" FILES ${platformHpp})
+	source_group("Platform Source Files" FILES ${platformCpp})
+endif()
 
 if(MSVC)
     target_compile_options(ocore PRIVATE /W4 /WX /MD /MP)

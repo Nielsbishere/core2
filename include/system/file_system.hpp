@@ -148,21 +148,21 @@ namespace oic {
         virtual bool mkdir(const FileInfo &file) = 0;
 
     protected:
+
+		//!Creates the look up tables by file path
+		//Has to be called after new files have been created/deleted
+		void resetLut();
     
         //!Called to initialize the file system cache
         virtual void initFiles() = 0;
-
-		//!Find a file inside of a list by the path
-		//@param[in] info The file list (virtualFiles or localFiles)
-		//@param[in] apath The path relative to the parent directory
-		//@param[in] directoryId The parent's directory id in the file list
-		//@return const FileInfo &fileFromList
-		static const FileInfo &fileSearch(const List<FileInfo> &info, const String &apath, FileInfo::SizeType directoryId = 0);
 
     private:
 
         //!File cache
         List<FileInfo> virtualFiles, localFiles;
+
+		//!File id by path look up tables
+		HashMap<String, FileInfo::SizeType> virtualFileLut, localFileLut;
 
         //!List of all file change callbacks
         List<FileCallback> callbacks;

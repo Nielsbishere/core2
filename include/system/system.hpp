@@ -9,18 +9,30 @@ namespace oic {
 
     //!Platform specific wrapper holding the file system, allocator, window manager and log
     //There may only be one instance of this object that has to be garbage collected
-    class System {
+	class System {
 
-    public:
+	public:
 
-		static inline LocalFileSystem *files();
-		static inline Allocator *allocator();
-		static inline ViewportManager *viewportManager();
-		static inline Log *log();
+		static inline LocalFileSystem *files() { return system->files_; }
+		static inline Allocator *allocator() { return system->allocator_; }
+		static inline ViewportManager *viewportManager() { return system->viewportManager_; }
+		static inline Log *log() { return system->log_; }
+
+		//!Used to replace the native Log callback with a custom one
+		//For example, logging to file, to UI, etc.
+		//@param[in] log The log class that handles the print callbacks, nullptr to reset it to native
+		//@note The System class handles cleanup of the Log* passed
+		static void setCustomLogCallback(Log *log);
+
+		//!Terminate the program; will stop System from updating
+		static void terminate();
+
+		//!Wait until the viewport manager is done and everything can be cleaned up
+		static void wait();
 
 	protected:
 
-		System();
+		System(LocalFileSystem *files_, Allocator *allocator_, ViewportManager *viewportManager_, Log *nativeLog);
 		virtual ~System();
 
 		System(const System &) = delete;
@@ -28,12 +40,18 @@ namespace oic {
 		System &operator=(const System &) = delete;
 		System &operator=(System &&) = delete;
 
-		virtual LocalFileSystem *getFiles() const = 0;
-		virtual Allocator *getAllocator() const = 0;
-		virtual ViewportManager *getViewportManager() const = 0;
-		virtual Log *getLog() const = 0;
+		//Values setup by the child class
 
-        static const System *system;
+		LocalFileSystem *files_{};
+		Allocator *allocator_{};
+		ViewportManager *viewportManager_{};
+		Log *log_{}, *nativeLog{};
+
+		bool isActive = true;
+
+		//System class
+
+        static System *system;
 
     };
 

@@ -18,4 +18,25 @@ namespace oic::errors {
 
 	}
 
+	//!Thrown by system.cpp and children
+	namespace sys {
+
+		//!Called if multiple instances of the system class exist
+		static constexpr c8 alreadyExists[] = "There can only be one system";
+
+	}
+
+	//!Thrown by log's children on fatal errors
+	namespace sig {
+
+		static constexpr c8 abrt[] = "System was aborted";
+		static constexpr c8 fpe[] = "Fatal floating point error";
+		static constexpr c8 ill[] = "Illegal system instruction";
+		static constexpr c8 interupt[] = "Interrupt signal was triggered";
+		static constexpr c8 segv[] = "Segmentation fault; accessing invalid memory";
+		static constexpr c8 term[] = "System was terminated";
+		static constexpr c8 undef[] = "Undefined exception has occurred";
+
+	}
+
 }

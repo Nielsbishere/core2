@@ -1,3 +1,4 @@
+#pragma once
 #include <stdint.h>
 #include <limits>
 #include <ctime>
@@ -101,6 +102,11 @@ template<typename T>
 using List = std::vector<T>;
 
 using Buffer = std::vector<u8>;
+
+#include <array>
+
+template<typename T, usz siz>
+using Array = std::array<T, siz>;
 
 #include <unordered_map>
 

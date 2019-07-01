@@ -1,36 +1,46 @@
 #include <stdexcept>
 #include "system/system.hpp"
+#include "system/log.hpp"
+#include "error/ocore.hpp"
 
 namespace oic {
 
-	System::System() { 
+	System::System(LocalFileSystem *files_, Allocator *allocator_, ViewportManager *viewportManager_, Log *nativeLog):
+		files_(files_), allocator_(allocator_), viewportManager_(viewportManager_), nativeLog(nativeLog), log_(nativeLog) {
 
-		if(system)
-			throw std::runtime_error("There can only be one system");
+		if (system)
+			nativeLog->fatal(errors::sys::alreadyExists);
 
 		system = this;
 	}
 
 	System::~System() {
+
+		if(log_ != nativeLog)
+			delete log_;
+
 		system = nullptr;
 	}
+
+	void System::setCustomLogCallback(Log *log) {
+
+		if (system->log_ != system->nativeLog)
+			delete system->log_;
+
+		system->log_ = log ? log : system->nativeLog;
+	}
     
-    const System *System::system = nullptr;
+    System *System::system = nullptr;
 
-	LocalFileSystem *System::files() {
-		return system->getFiles();
+	void System::terminate() {
+		system->isActive = false;
 	}
 
-	Allocator *System::allocator() {
-		return system->getAllocator();
-	}
-
-	ViewportManager *System::viewportManager() {
-		return system->getViewportManager();
-	}
-
-	Log *System::log() {
-		return system->getLog();
+	void System::wait() {
+		while (system->isActive) {
+			/*system->viewportManager_->update();
+			system->files_->update();*/
+		}
 	}
 
 
