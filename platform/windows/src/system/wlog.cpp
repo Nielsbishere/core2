@@ -19,9 +19,29 @@ namespace oic::windows {
 	template<bool outputToDebugConsole = false>
 	void print(const c8 *cstr, WORD color) {
 
+		//Get thread
+		DWORD thread = GetCurrentThreadId();
+
+		//Get time
+		time_t t {};
+		time(&t);
+
+		//Get readable time
+		struct tm timeInfo {};
+		localtime_s(&timeInfo, &t);
+
+		LARGE_INTEGER counter, freq;
+		QueryPerformanceCounter(&counter);
+		QueryPerformanceFrequency(&freq);
+
+		u32 ns = u32((counter.QuadPart / (freq.QuadPart / 1000000)) % 1000000);
+
+		//Set color
 		HANDLE handle = GetStdHandle(STD_OUTPUT_HANDLE);
 		SetConsoleTextAttribute(handle, color);
-		printf("%s\n", cstr);
+
+		//Print text
+		printf("[%u %02u:%02u:%02u.%06u]  %s\n", thread, timeInfo.tm_hour, timeInfo.tm_min, timeInfo.tm_sec, ns, cstr);
 
 		if constexpr (outputToDebugConsole)
 			OutputDebugStringA(cstr);

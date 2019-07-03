@@ -9,43 +9,66 @@ namespace oic {
     usz FileInfo::getFolders() const { return fileHint - folderHint; }
     usz FileInfo::getFiles() const { return fileEnd - fileHint; }
 	usz FileInfo::getFileObjects() const { return fileEnd - folderHint; }
+	bool FileInfo::isVirtual() const { return path[0] == '~'; }
+	bool FileInfo::hasData() const { return fileSize != 0; }
 
     bool FileInfo::hasAccess(FileAccess flags) const {
         return (u8(access) & u8(flags)) == u8(flags);
     }
 
-    FileSystem::FileSystem() {
-        //initFiles();
+    FileSystem::FileSystem(bool allowLocalFiles): allowLocalFiles(allowLocalFiles) {
+        initFiles();
 		resetLut();
     }
 
-    void FileSystem::addFileChangeCallback(FileCallback callback) {
+	//TODO: This can be "simplified" by a custom List class
+	template<typename T>
+	void addUnique(List<T> &arr, const T &t) {
 
-        auto it = std::find(callbacks.begin(), callbacks.end(), callback);
+		auto it = std::find(arr.begin(), arr.end(), t);
 
-        if(it != callbacks.end())
-            return;
+		if (it != arr.end())
+			return;
 
-        callbacks.insert(it, callback);
+		arr.push_back(it, t);
+	}
 
+	//TODO: This can be "simplified" by a custom List class
+	template<typename T>
+	void remove(List<T> &arr, const T &t) {
+
+		auto it = std::find(arr.begin(), arr.end(), t);
+
+		if (it == arr.end())
+			return;
+
+		arr.erase(it);
+	}
+
+    void FileSystem::addFileChangeCallback(FileChangeCallback callback) {
+		addUnique(callbacks, callback);
     }
 
-    void FileSystem::removeFileChangeCallback(FileCallback callback) {
-
-        auto it = std::find(callbacks.begin(), callbacks.end(), callback);
-
-        if(it != callbacks.end())
-            return;
-
-        callbacks.erase(it);
-
+    void FileSystem::removeFileChangeCallback(FileChangeCallback callback) {
+		oic::remove(callbacks, callback);
     }
 
 	//TODO: What happens with "a/"? does it just turn into "a"?
     bool FileSystem::resolvePath(const String &path, String &outPath) const {
 
+		//Force correct paths
+
         if(path.size() == 0 || path.find('\\') != String::npos)
             return false;
+
+		//Skip path parsing if there's no .
+
+		if (path.size() == 1 || path.find('.', 1) == String::npos) {
+			outPath = path;
+			return (outPath[0] == '~' || outPath[0] == '.') && (outPath.size() == 1 || outPath[1] == '/');
+		}
+
+		//TODO: Check if it contains ../ or ./
 
         //Split into sub paths
 
@@ -101,7 +124,7 @@ namespace oic {
         if(info.path == "" || !info.hasAccess(FileAccess::READ))
             return false;
 
-        const auto &arr = info.isVirtual ? virtualFiles : localFiles;
+        const auto &arr = info.isVirtual() ? virtualFiles : localFiles;
 
         for(usz i = info.folderHint, end = info.fileEnd; i != end; ++i)
             callback(this, arr[i]);
@@ -120,7 +143,7 @@ namespace oic {
 		if (!resolvePath(path, apath))
 			System::log()->fatal(errors::fs::invalid);
 
-		if (apath[0] == '.' && supportsLocalFiles()) {
+		if (apath[0] == '.' && allowLocalFiles) {
 
 			auto ou = localFileLut.find(apath);
 
@@ -140,6 +163,10 @@ namespace oic {
 		return virtualFiles[ou->second];
 	}
 
+	FileInfo &FileSystem::get(const String &path) {
+		return (FileInfo&)((const FileSystem*)this)->get(path);
+	}
+
 	bool FileSystem::exists(const String &path) const {
 
 		String apath;
@@ -149,7 +176,7 @@ namespace oic {
 
 		if (apath[0] == '~')
 			return virtualFileLut.find(apath) != virtualFileLut.end();
-		else if (supportsLocalFiles())
+		else if (allowLocalFiles)
 			return localFileLut.find(apath) != localFileLut.end();
 
 		return false;
@@ -166,7 +193,7 @@ namespace oic {
 			++i;
 		}
 
-		if (!supportsLocalFiles())
+		if (!allowLocalFiles)
 			return;
 
 		localFileLut.clear();
@@ -177,6 +204,73 @@ namespace oic {
 			localFileLut[info.path] = i;
 			++i;
 		}
+
+	}
+
+	void FileSystem::notifyFileChange(const String &path, bool isRemoved) {
+
+		String apath;
+
+		if (!resolvePath(path, apath)) {
+			System::log()->fatal(errors::fs::invalid);
+			return;
+		}
+
+		//const auto &arr = info.isVirtual() ? virtualFiles : localFiles;
+
+		//Remove the file and children
+		//Update the handles of everyone
+
+		if (isRemoved) {
+
+			//TODO: Removing file the array doesn't work, because it needs to update the fileHint
+
+			/*if (!exists(apath)) {
+				System::log()->fatal(errors::fs::nonExistent);
+				return;
+			}
+
+			
+			for (FileRemoveCallback cb : removeCallbacks)
+				cb(this, get(apath));
+
+			onFileRemove(get(apath));
+
+			localFileLut.erase(apath);*/
+
+			System::log()->fatal(errors::fs::notSupported);
+			return;
+		}
+
+		//Create file
+
+		if (!exists(apath)) {
+
+			//TODO: Appending to the array doesn't work, because it needs to update the fileHint
+
+			/*usz ou = usz(localFiles.end() - localFiles.begin());
+
+			localFiles.push_back(FileInfo{});
+			FileInfo &file = localFiles[ou];
+
+			onFileChange(file);
+			localFileLut[apath] = FileInfo::SizeType(ou);
+
+			for (FileCallback cb : callbacks)
+				cb(this, file);*/
+
+			System::log()->fatal(errors::fs::notSupported);
+			return;
+		}
+
+		//Update file
+
+		auto it = apath[0] == '.' ? localFileLut.find(apath) : virtualFileLut.find(apath);
+		FileInfo &file = apath[0] == '.' ? localFiles[it->second] : virtualFiles[it->second];
+		onFileChange(file, false);
+
+		for (FileChangeCallback cb : callbacks)
+			cb(this, file, false);
 
 	}
 
