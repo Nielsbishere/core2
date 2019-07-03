@@ -190,7 +190,7 @@ namespace oic {
     protected:
 
 		//!Creates a local folder
-		virtual void mkdir(FileInfo &file) {}
+		virtual void mkdir(FileInfo &) {}
 
 		//!Creates the look up tables by file path
 		void resetLut();
@@ -199,7 +199,7 @@ namespace oic {
         virtual void initFiles() = 0;
 
 		//!Used to handle file changes and update the metadata for the file
-		virtual void onFileChange(FileInfo &path, bool remove) {}
+		virtual void onFileChange(FileInfo &, bool) {}
 
     private:
 

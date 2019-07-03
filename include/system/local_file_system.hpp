@@ -26,8 +26,8 @@ namespace oic {
 		void onFileChange(FileInfo &path, bool remove) final override;
 
 		virtual bool readVirtual(const FileInfo &file, Buffer &buffer, usz size, usz offset) const = 0;
-		virtual bool writeVirtual(FileInfo &file, const Buffer &buffer, usz size, usz bufferOffset, usz fileOffset) { return false; }
-		virtual void onVirtualFileChange(FileInfo &path, bool remove) { }
+		virtual bool writeVirtual(FileInfo &, const Buffer &, usz, usz, usz) { return false; }
+		virtual void onVirtualFileChange(FileInfo &, bool) { }
 
 		virtual void initFileWatcher() = 0;
 

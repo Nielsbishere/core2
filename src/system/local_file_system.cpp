@@ -34,9 +34,8 @@ namespace oic {
 		if (file.isVirtual())
 			return readVirtual(file, buffer, size, offset);
 		
-		FILE *f = fopen(file.path.c_str(), "r");
-
-		if (!f) {
+		FILE *f{};
+		if(fopen_s(&f, file.path.c_str(), "r") != 0 || !f) {
 			System::log()->fatal(errors::fs::nonExistent);
 			return false;
 		}
@@ -46,6 +45,7 @@ namespace oic {
 
 		if (offset + size > file.fileSize) {
 			System::log()->fatal(errors::fs::outOfBounds);
+			fclose(f);
 			return false;
 		}
 
@@ -61,9 +61,8 @@ namespace oic {
 		if (file.isVirtual())
 			return writeVirtual(file, buffer, size, bufferOffset, fileOffset);
 
-		FILE *f = fopen(file.path.c_str(), fileOffset == usz_MAX ? "a" : "w");
-
-		if (!f) {
+		FILE *f{};
+		if(fopen_s(&f, file.path.c_str(), fileOffset == usz_MAX ? "a" : "w") != 0 || !f) {
 			System::log()->fatal(errors::fs::nonExistent);
 			return false;
 		}

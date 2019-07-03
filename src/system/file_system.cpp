@@ -30,7 +30,7 @@ namespace oic {
 		if (it != arr.end())
 			return;
 
-		arr.push_back(it, t);
+		arr.push_back(t);
 	}
 
 	//TODO: This can be "simplified" by a custom List class
