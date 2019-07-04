@@ -3,7 +3,7 @@
 
 namespace oic::windows {
 
-	class WLog : public Log {
+	class WLog : public oic::Log {
 
 	public:
 

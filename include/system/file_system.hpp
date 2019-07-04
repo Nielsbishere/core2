@@ -195,7 +195,7 @@ namespace oic {
 		//!Creates the look up tables by file path
 		void resetLut();
     
-        //!Called to initialize the file system cache
+        //!Should be called to initialize the file system cache
         virtual void initFiles() = 0;
 
 		//!Used to handle file changes and update the metadata for the file

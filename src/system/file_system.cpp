@@ -16,10 +16,7 @@ namespace oic {
         return (u8(access) & u8(flags)) == u8(flags);
     }
 
-    FileSystem::FileSystem(bool allowLocalFiles): allowLocalFiles(allowLocalFiles) {
-        initFiles();
-		resetLut();
-    }
+    FileSystem::FileSystem(bool allowLocalFiles): allowLocalFiles(allowLocalFiles) { }
 
 	//TODO: This can be "simplified" by a custom List class
 	template<typename T>

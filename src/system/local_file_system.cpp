@@ -25,8 +25,10 @@
 
 namespace oic {
 
-	LocalFileSystem::LocalFileSystem(): FileSystem(true) {
-		initFileWatcher();
+	LocalFileSystem::LocalFileSystem(String localPath): FileSystem(true), localPath(localPath) { }
+
+	const String &LocalFileSystem::getLocalPath() const {
+		return localPath;
 	}
 
 	bool LocalFileSystem::read(const FileInfo &file, Buffer &buffer, usz size, usz offset) const {

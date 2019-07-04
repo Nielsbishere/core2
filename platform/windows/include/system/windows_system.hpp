@@ -1,6 +1,7 @@
 #pragma once
 #include "system/system.hpp"
-#include "system/wlog.hpp"
+#include "system/windows_log.hpp"
+#include "system/windows_file_system.hpp"
 
 namespace oic::windows {
 
@@ -17,7 +18,7 @@ namespace oic::windows {
 		WindowsSystem();
 		~WindowsSystem() = default;
 
-		//WLocalFileSystem wfileSystem;
+		WFileSystem wfileSystem;
 		//WAllocator wallocator;
 		//WViewportManager wviewportManager;
 		WLog wlog;

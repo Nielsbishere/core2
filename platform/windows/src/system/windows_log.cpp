@@ -1,4 +1,4 @@
-#include "system/wlog.hpp"
+#include "system/windows_log.hpp"
 #include "system/system.hpp"
 #include "error/ocore.hpp"
 #include <exception>
