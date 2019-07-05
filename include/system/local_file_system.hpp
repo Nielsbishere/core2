@@ -32,6 +32,10 @@ namespace oic {
 		//!Create a folder in the physical directory
 		void mkdir(FileInfo &file) final override;
 
+		//!Setup the data of the file
+		//requires path and file location variables to be set
+		void initFile(FileInfo &file);
+
 		//!Read the virtual file
 		virtual bool readVirtual(const FileInfo &file, Buffer &buffer, usz size, usz offset) const = 0;
 

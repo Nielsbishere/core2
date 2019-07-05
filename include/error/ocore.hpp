@@ -20,6 +20,10 @@ namespace oic::errors {
 		//E.g. reading or writing outside of the file's address space
 		static constexpr c8 outOfBounds[] = "The requested operation was out of bounds";
 
+		//!Occurs when the operation is not allowed logically
+		//E.g. deleting the root folder in a file system
+		static constexpr c8 illegal[] = "The requested operation is illegal";
+
 	}
 
 	//!Thrown by system.cpp and children

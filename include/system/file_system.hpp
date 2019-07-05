@@ -12,13 +12,16 @@ namespace oic {
         READ_WRITE = 0b11
     };
 
+	//!A handle to a file
+	using FileHandle = u32;
+
     //!The queried info about a file
     //The layout of a recursive file structure:
     //folders, files, recursive
     struct FileInfo {
 
-        //!The size type of the file system
-        using SizeType = u32;
+		//!The difference between two file handles
+		using SizeType = FileHandle;
 
         //!The full path in oic representation
         String path{};
@@ -35,19 +38,22 @@ namespace oic {
         void *dataExt{};
 
         //!Implementation specific magic number (for identifying subtypes)
-        SizeType magicNumber{};
+        u32 magicNumber{};
 
         //!The parent's file id
-        SizeType parent{};
+		FileHandle parent{};
+
+		//!The id of this file
+		FileHandle id{};
 
         //!The start location of the folders
-        SizeType folderHint{};
+		FileHandle folderHint{};
 
         //!The start location of the files (fileHint - folderHint = folderCount)
-        SizeType fileHint{};
+		FileHandle fileHint{};
 
         //!The end location of the files (fileEnd - fileHint = fileCount)
-        SizeType fileEnd{};
+		FileHandle fileEnd{};
 
         //!The access flags of this file
         FileAccess access{};
@@ -59,9 +65,9 @@ namespace oic {
 
         //Helper functions
 
-        usz getFolders() const;
-        usz getFiles() const;
-		usz getFileObjects() const;
+		SizeType getFolders() const;
+		SizeType getFiles() const;
+		SizeType getFileObjects() const;
 
 		//!Determines if this file can be accessed with these flags
         bool hasAccess(FileAccess flags) const;
@@ -89,6 +95,7 @@ namespace oic {
     //\ is disallowed
     //This is called oic file notation
 	//Each file system has to handle keeping the file system up to date
+	//Note: Keep in mind that FileInfo& is only valid while the FileSystem hasn't changed yet, use file handles or paths instead
     class FileSystem {
 
     public:
@@ -112,14 +119,27 @@ namespace oic {
         //!Get the properties of a file
         //@param[in] path The target file object with oic file notation
         //@return FileInfo &fileProperties
-        //@warning Throws if the file doesn't exist
+        //@warning Throws if the file doesn't exist, FileInfo is only valid until new files are added/removed
         FileInfo &get(const String &path);
 
         //!Get the properties of a file
         //@param[in] path The target file object with oic file notation
         //@return FileInfo &fileProperties
-        //@warning Throws if the file doesn't exist
+        //@warning Throws if the file doesn't exist, FileInfo is only valid until new files are added/removed
         const FileInfo &get(const String &path) const;
+
+		//!Get the properties by a file handle
+		//@param[in] id The file id
+		//@param[in] isLocal If the file is local or virtual
+        //@return FileInfo &fileProperties
+        //@warning Throws if the file doesn't exist, FileInfo is only valid until new files are added/removed
+		FileInfo &get(FileHandle id, bool isLocal);
+
+		//!Get the properties by a file handle
+		//@param[in] id The file id
+        //@return FileInfo &fileProperties
+        //@warning Throws if the file doesn't exist, FileInfo is only valid until new files are added/removed
+		const FileInfo &get(FileHandle id, bool isLocal) const;
 
         //!Resolve the path to a normal file directory (without ../ and ./)
         //@param[in] path The target file object with oic file notation
@@ -176,16 +196,20 @@ namespace oic {
 			return write(get(file), buffer, size, bufferOffset, fileOffset);
 		}
 
-        //!Add a directory or file
-        //@param[in] file The target file object
-		//@param[in] isFolder If the file can have children
-        //@return bool success
-        bool add(const String &file, bool isFolder);
+  //      //!Add a directory or file
+  //      //@param[in] file The newly created file
+  //      //@return bool success
+  //      bool add(const FileInfo &file);
 
-		//!Remove a directory or file
-		//@param[in] file The target file object
-        //@return bool success
-		bool remove(FileInfo &file);
+		////!Remove a directory or file
+		////@param[in] file The target file object
+  //      //@return bool success
+		//bool remove(FileInfo &file);
+
+		//Sizes of the file system
+
+		FileInfo::SizeType localSize() const;
+		FileInfo::SizeType virtualSize() const;
 
     protected:
 
@@ -201,7 +225,14 @@ namespace oic {
 		//!Used to handle file changes and update the metadata for the file
 		virtual void onFileChange(FileInfo &, bool) {}
 
+		//!Adds the representation of a file
+		//Called by the child
+		void addLocal(FileInfo &file);
+
     private:
+
+		//!Called on file remove
+		void notifyFileRemove(FileHandle handle, bool isLocal);
 
 		//!Whether or not the local file system is utilized
 		bool allowLocalFiles;
@@ -210,7 +241,7 @@ namespace oic {
         List<FileInfo> virtualFiles, localFiles;
 
 		//!File id by path look up tables
-		HashMap<String, FileInfo::SizeType> virtualFileLut, localFileLut;
+		HashMap<String, FileHandle> virtualFileLut, localFileLut;
 
         //!List of all file change callbacks
         List<FileChangeCallback> callbacks;

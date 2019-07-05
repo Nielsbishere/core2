@@ -17,6 +17,8 @@ namespace oic {
 		void initFileWatcher() final override;
 		void initFiles() final override;
 
+		void initFiles_(const String &ou, FileHandle file);
+
 		static void watchFileSystem(WFileSystem *fs);
 
 		std::future<void> thread;

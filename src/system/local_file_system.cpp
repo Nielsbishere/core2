@@ -17,6 +17,7 @@
 	#include <direct.h>
 	#define fseeko _fseeki64
 	#define stat _stat64
+	#define S_ISREG(m) (((m) & S_IFMT) == S_IFREG)
 #else
 	#define _mkdir(x) mkdir(x, 0600)
 #endif
@@ -101,7 +102,7 @@ namespace oic {
 
 	void LocalFileSystem::onFileChange(FileInfo &file, bool remove) {
 
-		if (!remove)
+		if (remove)
 			return;
 
 		if (file.isVirtual()) {
@@ -116,4 +117,20 @@ namespace oic {
 		file.fileSize = st.st_size;
 
 	}
+
+	void LocalFileSystem::initFile(FileInfo &file) {
+
+		if (file.isVirtual())
+			return;
+
+		struct stat st;
+		stat(file.path.c_str(), &st);
+
+		file.modificationTime = st.st_mtime;
+		file.fileSize = st.st_size;
+		file.access = FileAccess::READ_WRITE;
+		file.isFolder = !S_ISREG(st.st_mode);
+
+	}
+
 }
