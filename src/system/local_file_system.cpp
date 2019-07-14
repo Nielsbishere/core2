@@ -20,6 +20,7 @@
 	#define S_ISREG(m) (((m) & S_IFMT) == S_IFREG)
 #else
 	#define _mkdir(x) mkdir(x, 0600)
+	#define fopen_s(res, ...) *(res) = fopen(__VA_ARGS__)
 #endif
 
 //Local file system implementation
@@ -36,6 +37,11 @@ namespace oic {
 
 		if (file.isVirtual())
 			return readVirtual(file, buffer, size, offset);
+
+		if (file.isFolder) {
+			System::log()->fatal(errors::fs::illegal);
+			return false;
+		}
 		
 		FILE *f{};
 		if(fopen_s(&f, file.path.c_str(), "r") != 0 || !f) {
@@ -64,6 +70,11 @@ namespace oic {
 		if (file.isVirtual())
 			return writeVirtual(file, buffer, size, bufferOffset, fileOffset);
 
+		if (file.isFolder) {
+			System::log()->fatal(errors::fs::illegal);
+			return false;
+		}
+
 		FILE *f{};
 		if(fopen_s(&f, file.path.c_str(), fileOffset == usz_MAX ? "a" : "w") != 0 || !f) {
 			System::log()->fatal(errors::fs::nonExistent);
@@ -90,7 +101,7 @@ namespace oic {
 
 		fwrite(buffer.data() + bufferOffset, 1, size, f);
 		fclose(f);
-		notifyFileChange(file.path, false);
+		notifyFileChange(file.path, FileChange::MOD, false, {});
 		return true;
 	}
 
@@ -100,13 +111,13 @@ namespace oic {
 			System::log()->fatal(errors::fs::notSupported);
 	}
 
-	void LocalFileSystem::onFileChange(FileInfo &file, bool remove) {
+	void LocalFileSystem::onFileChange(FileInfo &file, FileChange change) {
 
-		if (remove)
+		if (change == FileChange::REM)
 			return;
 
 		if (file.isVirtual()) {
-			onVirtualFileChange(file, remove);
+			onVirtualFileChange(file, change);
 			return;
 		}
 
@@ -127,9 +138,9 @@ namespace oic {
 		stat(file.path.c_str(), &st);
 
 		file.modificationTime = st.st_mtime;
-		file.fileSize = st.st_size;
 		file.access = FileAccess::READ_WRITE;
 		file.isFolder = !S_ISREG(st.st_mode);
+		file.fileSize = file.isFolder ? 0 : st.st_size;
 
 	}
 

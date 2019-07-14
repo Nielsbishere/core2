@@ -22,7 +22,7 @@ namespace oic {
 			localFileLut = { { ".", 0 } };
 			localFiles = {
 				FileInfo{
-					".",
+					".", ".",
 					0, 0, nullptr, 0, 0, 0, 0, 0, 0,
 					FileAccess::READ_WRITE,
 					true
@@ -32,7 +32,7 @@ namespace oic {
 
 		virtualFiles = {
 			FileInfo{
-				"~",
+				"~", "~",
 				0, 0, nullptr, 0, 0, 0, 0, 0, 0,
 				FileAccess::READ_WRITE,
 				true
@@ -73,6 +73,42 @@ namespace oic {
 		oic::remove(callbacks, callback);
     }
 
+	usz FileSystem::obtainPath(const String &path, List<String> &splits) {
+
+		auto beg = path.begin();
+		auto end = path.end();
+
+		splits.reserve(std::count(beg, end, '/') + 1);
+		auto prev = beg;
+		usz i{}, total{};
+
+		for (auto it = beg, last = end - 1; it != end; ++it)
+			if (*it == '/') {
+
+				if ((it - prev) == 2 && *prev == '.' && *(prev + 1) == '.') {        //Erase previous if ..
+
+					if (splits.size() <= 1)
+						return false;
+
+					total -= splits[splits.size() - 1].size();
+					splits.erase(splits.end() - 1);
+
+				} else if ((it - prev) != 1 || *prev != '.' || prev == beg) {         //Add next if not .
+					splits.push_back(String(prev, it));
+					total += it - prev;
+				}
+
+				prev = it;
+				++prev;
+				++i;
+			} else if (it == last) {                                                 //Add last parameter
+				splits.push_back(String(prev, end));
+				total += end - prev;
+			}
+
+		return total;
+	}
+
 	//TODO: What happens with "a/"? does it just turn into "a"?
     bool FileSystem::resolvePath(const String &path, String &outPath) const {
 
@@ -81,48 +117,17 @@ namespace oic {
         if(path.size() == 0 || path.find('\\') != String::npos)
             return false;
 
-		//Skip path parsing if there's no .
+		//Skip path parsing if there's no ./ and ../
 
-		if (path.size() == 1 || path.find('.', 1) == String::npos) {
+		if (path.size() == 1 || path.find("/../") == String::npos || path.find("/./") == String::npos) {
 			outPath = path;
 			return (outPath[0] == '~' || outPath[0] == '.') && (outPath.size() == 1 || outPath[1] == '/');
 		}
 
-		//TODO: Check if it contains ../ or ./
-
         //Split into sub paths
-
-        auto beg = path.begin();
-        auto end = path.end();
         
         List<String> splits;
-        splits.reserve(std::count(beg, end, '/') + 1);
-        auto prev = beg;
-        usz i{}, total{};
-
-        for(auto it = beg, last = end - 1; it != end; ++it)
-            if(*it == '/') {
-                
-                if((it - prev) == 2 && *prev == '.' && *(prev + 1) == '.') {        //Erase previous if ..
-
-                    if(splits.size() <= 1)
-                        return false;
-
-                    total -= splits[splits.size() - 1].size();
-                    splits.erase(splits.end() - 1);
-
-                } else if((it - prev) != 1 || *prev != '.' || prev == beg){         //Add next if not .
-                    splits.push_back(String(prev, it));
-                    total += it - prev;
-                }
-                    
-                prev = it;
-                ++prev;
-                ++i;
-            } else if(it == last) {                                                 //Add last parameter
-                splits.push_back(String(prev, end));
-                total += end - prev;
-            }
+		usz total = obtainPath(path, splits);
 
         //Combine into final string
 
@@ -144,7 +149,7 @@ namespace oic {
         if(info.path == "" || !info.hasAccess(FileAccess::READ))
             return false;
 
-        const auto &arr = info.isVirtual() ? virtualFiles : localFiles;
+        auto &arr = info.isVirtual() ? virtualFiles : localFiles;
 
         for(usz i = info.folderHint, end = info.fileEnd; i != end; ++i)
             callback(this, arr[i]);
@@ -256,10 +261,10 @@ namespace oic {
 
 		FileInfo &fs = get(handle, isLocal);
 
-		for (FileChangeCallback cb : callbacks)
-			cb(this, fs, true);
+		onFileChange(fs, FileChange::REM);
 
-		onFileChange(fs, true);
+		for (FileChangeCallback cb : callbacks)
+			cb(this, fs, FileChange::REM);
 
 		//Remove from parent
 
@@ -270,6 +275,8 @@ namespace oic {
 			--parent.fileHint;
 
 		--parent.fileEnd;
+
+		//TODO: Update handles after and the folders before
 
 		//Remove from system
 
@@ -284,7 +291,144 @@ namespace oic {
 
 	}
 
-	void FileSystem::notifyFileChange(const String &path, bool isRemoved) {
+	void FileSystem::notifyFileAdd(const String &path, bool isLocal, bool isDirectory) {
+
+		if (isLocal && !allowLocalFiles)
+			System::log()->fatal(errors::fs::notSupported);
+
+		List<String> parts;
+		obtainPath(path, parts);
+
+		//Go through subfiles and find the parent
+
+		auto &arr = isLocal ? localFiles : virtualFiles;
+		FileInfo *parent = arr.data();
+
+		for (usz i = 1, j = parts.size() - 1; j != usz_MAX && i < j; ++i) {
+
+			String part = parts[i];
+			bool found = false;
+
+			for (usz k = parent->folderHint; k != parent->fileHint; ++k) {
+
+				usz l = k - parent->id;
+				if (parent[l].name == part) {
+					parent = parent + l;
+					found = true;
+					break;
+				}
+			}
+
+			//Mkdir
+
+			if (!found) {
+				String dpath = parent->path + "/" + part;
+				notifyFileAdd(dpath, isLocal, true);
+				parent = &get(dpath);
+			}
+
+		}
+
+		//Create file or directory
+
+		String &part = *(parts.end() - 1);
+		String apath = parent->path + "/" + part;
+
+		FileHandle handle = isDirectory ? parent->fileHint : parent->fileEnd;
+
+		//The file doesn't have folders/files yet
+		if (handle == 0)
+			System::log()->fatal(errors::fs::illegal);
+
+		//Set up the parent's handles
+
+		bool setParentHint = false;
+
+		if (parent->getFolders() == 0 && isDirectory) {
+
+			auto files = parent->getFiles();
+
+			if (files == 0)
+				parent->fileHint = handle + 1;
+			else
+				++parent->fileHint;
+
+			parent->folderHint = handle;
+			parent->fileEnd = handle + files + 1;
+
+		} else if (parent->getFiles() == 0 && !isDirectory) {
+
+			FileHandle folders = parent->getFolders();
+
+			if (folders == 0)
+				parent->folderHint = handle;
+
+			FileHandle ou = parent->folderHint;
+
+			parent->fileHint = ou + folders;
+			parent->fileEnd = ou + folders + 1;
+
+		} else {
+			parent->fileHint += FileHandle(isDirectory);
+			++parent->fileEnd;
+		}
+
+		//Update all file handles
+
+		FileHandle pid = parent->id;	//All ids before handle stay the same, so parent->id and parent->parent is always valid
+
+		for (FileHandle i = 0, j = isLocal ? localSize() : virtualSize(); i < j; ++i) {
+
+			FileInfo &f = arr[i];
+
+			FileHandle shouldIncrement(
+				f.id != pid && (f.fileEnd > handle || (f.fileEnd == handle && f.parent >= pid))
+			);
+
+			f.folderHint += shouldIncrement;
+			f.fileHint += shouldIncrement;
+			f.fileEnd += shouldIncrement;
+			f.id += FileHandle(f.id >= handle);
+			f.parent += FileHandle(f.parent >= handle);
+		}
+
+		//Obtain where the folder's children should be located
+
+		FileHandle hint = isDirectory ? parent->fileEnd : 0;
+
+		if (isDirectory && parent->getFolders() > 1 && !setParentHint)
+			hint = arr[parent->fileHint - 2].fileEnd;
+
+		//The folder doesn't have a place to go
+
+		if (hint == 0 && isDirectory)
+			System::log()->fatal(errors::fs::illegal);
+
+		//Add to system
+
+		FileInfo info {
+			apath, part,
+			0, 0, nullptr, 0,
+			parent->id, handle, hint, hint, hint,
+			parent->access, isDirectory
+		};
+
+		auto &lut = isLocal ? localFileLut : virtualFileLut;
+
+		lut[apath] = handle;
+		arr.insert(arr.begin() + handle, info);
+
+		//Send update
+
+		FileInfo &fi = arr[handle];
+		onFileChange(fi, FileChange::ADD);
+
+		for (FileChangeCallback cb : callbacks)
+			cb(this, fi, FileChange::ADD);
+
+	}
+
+	void FileSystem::notifyFileChange(const String &path, FileChange change, bool isFolder, const String &newPath) {
 
 		String apath;
 
@@ -294,79 +438,74 @@ namespace oic {
 		}
 
 		bool isLocal = apath[0] == '.';
-		auto &arr = isLocal ? localFiles : virtualFiles;
-		auto &map = isLocal ? localFileLut : virtualFileLut;
 
-		//Remove the file and children
-		//Update the handles of everyone
+		if (change == FileChange::MOV) {
 
-		if (isRemoved) {
+			String npath;
 
-			FileHandle loc = get(path).id;
-			notifyFileRemove(loc, isLocal);
-
-			for (FileHandle i = loc, end = isLocal ? localSize() : virtualSize(); i != end; ++i) {
-
-				FileInfo &f = arr[i];
-				FileInfo &parent = get(f.path.substr(0, f.path.find_last_of('/')));
-
-				map[f.path] = i;
-
-				f.id = i;
-				f.parent = parent.id;
-				f.folderHint = f.fileHint = f.fileEnd = 0;
-
-				if (parent.folderHint == 0 && f.isFolder) {
-					parent.folderHint = i;
-					parent.fileHint = i;
-					parent.fileEnd = i;
-				} else if (parent.fileHint == 0 && !f.isFolder) {
-
-					if(parent.folderHint == 0)
-						parent.folderHint = i;
-
-					parent.fileHint = i;
-					parent.fileEnd = i;
-				}
-
-				if (f.isFolder)
-					++parent.fileHint;
-
-				++parent.fileEnd;
+			if (!resolvePath(newPath, npath)) {
+				System::log()->fatal(errors::fs::invalid);
+				return;
 			}
 
-			return;
+			if (npath.substr(0, npath.find_last_of('/')) != apath.substr(0, apath.find_last_of('/'))) {
+				System::log()->fatal(errors::fs::notSupported);
+				return;
+			}
+
+			FileInfo &info = get(apath);
+			rename(info, npath, true);
+
+			if(info.isFolder)
+				foreachFile(info, [] (FileSystem *f, FileInfo &fi) -> void {
+
+					bool local = !fi.isVirtual();
+					f->rename(fi, f->get(fi.parent, local).path + "/" + fi.name, false);
+
+				}, true);
+
+			apath = std::move(npath);
+
 		}
 
 		//Create file
 
 		if (!exists(apath)) {
 
-			//TODO: Appending to the array doesn't work, because it needs to update the fileHint
+			if(change != FileChange::ADD) {
+				System::log()->fatal(errors::fs::invalid);
+				return;
+			}
 
-			/*usz ou = usz(localFiles.end() - localFiles.begin());
+			notifyFileAdd(apath, isLocal, isFolder);
+			return;
+		}
 
-			localFiles.push_back(FileInfo{});
-			FileInfo &file = localFiles[ou];
+		FileInfo &f = get(apath);
+		FileHandle loc = f.id;
 
-			onFileChange(file);
-			localFileLut[apath] = FileInfo::SizeType(ou);
+		//Remove the file and children
+		//Update the handles of everyone
 
-			for (FileCallback cb : callbacks)
-				cb(this, file);*/
+		if (change == FileChange::REM) {
+			notifyFileRemove(loc, isLocal);
+			return;
+		}
 
-			System::log()->fatal(errors::fs::notSupported);
+		if (change == FileChange::ADD) {
+			System::log()->fatal(errors::fs::invalid);
 			return;
 		}
 
 		//Update file
 
-		auto it = map.find(apath);
-		FileInfo &file = arr[it->second];
-		onFileChange(file, false);
+		auto &arr = isLocal ? localFiles : virtualFiles;
+
+		FileInfo &file = arr[loc];
+		onFileChange(file, change);
 
 		for (FileChangeCallback cb : callbacks)
-			cb(this, file, false);
+			cb(this, file, change);
 
 	}
 
@@ -377,6 +516,14 @@ namespace oic {
 	FileInfo::SizeType FileSystem::virtualSize() const {
 		return FileInfo::SizeType(virtualFiles.size());
 	}
+
+	const List<FileInfo> &FileSystem::virtualFile() const {
+		return virtualFiles;
+	}
+
+	const List<FileInfo> &FileSystem::localFile() const {
+		return localFiles;
+	}
 	
 	void FileSystem::addLocal(FileInfo &file) {
 
@@ -385,6 +532,20 @@ namespace oic {
 
 		localFiles.push_back(file);
 		localFileLut[file.path] = file.id;
+	}
+
+	void FileSystem::rename(FileInfo &info, const String &path, bool setName) {
+
+		auto &map = info.isVirtual() ? virtualFileLut : localFileLut;
+
+		map.erase(info.path);
+
+		info.path = path;
+		map[info.path] = info.id;
+
+		if (setName)
+			info.name = info.path.substr(info.path.find_last_of('/') + 1);
+
 	}
 
 	const FileInfo &FileSystem::get(FileHandle id, bool isLocal) const {
@@ -400,6 +561,10 @@ namespace oic {
 
 	FileInfo &FileSystem::get(FileHandle id, bool isLocal) {
 		return (FileInfo&)((const FileSystem*)this)->get(id, isLocal);
+	}
+
+	void FileSystem::add(const String &path, bool isFolder) {
+		notifyFileChange(path, FileChange::ADD, isFolder, {});
 	}
 
 }

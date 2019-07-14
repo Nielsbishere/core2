@@ -2,8 +2,10 @@
 #include "system/system.hpp"
 #include "system/log.hpp"
 #include "error/ocore.hpp"
+
 #include <Windows.h>
 #include <codecvt>
+#define S_ISREG(m) (((m) & S_IFMT) == S_IFREG)
 
 namespace oic {
 
@@ -29,7 +31,19 @@ namespace oic {
 		buffer;
 		size;
 		offset;
-		return false;
+		return false;		//TODO:
+	}
+
+	String getPath(FILE_NOTIFY_INFORMATION *fni) {
+
+		usz len = fni->FileNameLength / 2;
+		String path(len + 2, '/'), newPath;
+		path[0] = '.';
+
+		for (usz i = 0; i < len; ++i)
+			path[i + 2] = fni->FileName[i] == L'\\' ? '/' : c8(fni->FileName[i]);
+
+		return path;
 	}
 
 	void WFileSystem::watchFileSystem(WFileSystem *fs) {
@@ -43,67 +57,92 @@ namespace oic {
 		if (directory == INVALID_HANDLE_VALUE)
 			System::log()->fatal(errors::fs::invalid);
 
+		constexpr usz bufferSize = 1_MiB;
+		u8 *buffer = (u8*) malloc(bufferSize);
+
+		if (!buffer) {
+			System::log()->fatal(errors::fs::outOfMemory);
+			return;
+		}
+
 		while (fs->running) {
 
-			u8 buffer[sizeof(FILE_NOTIFY_INFORMATION) + MAX_PATH * 2]{};
 			DWORD returned{};
 
 			if(!ReadDirectoryChangesW(
-				directory, buffer, sizeof(buffer), TRUE,
-				FILE_NOTIFY_CHANGE_FILE_NAME | FILE_NOTIFY_CHANGE_DIR_NAME | FILE_NOTIFY_CHANGE_LAST_WRITE | FILE_NOTIFY_CHANGE_SECURITY,
+				directory, buffer, bufferSize, TRUE,
+				FILE_NOTIFY_CHANGE_FILE_NAME | FILE_NOTIFY_CHANGE_DIR_NAME | FILE_NOTIFY_CHANGE_LAST_WRITE,
 				&returned, NULL, NULL
 			))
 				System::log()->fatal(errors::fs::invalid);
 
-			FILE_NOTIFY_INFORMATION &fni = *(FILE_NOTIFY_INFORMATION*)buffer;
+			if (returned == 0)
+				System::log()->fatal(errors::fs::outOfMemory);
 
-			usz len = fni.FileNameLength / 2;
-			String path(len + 2, '/');
-			path[0] = '.';
+			FILE_NOTIFY_INFORMATION *fni = (FILE_NOTIFY_INFORMATION*)buffer;
+			struct stat st;
 
-			for (usz i = 0; i < len; ++i)
-				path[i + 2] = fni.FileName[i] == '\\' ? '/' : c8(fni.FileName[i]);
+			System::begin();
 
-			switch (fni.Action) {
+			do {
 
-				case FILE_ACTION_REMOVED:
+				String newPath;
+				String path = getPath(fni);
 
-					if (!fs->exists(path))
-						System::log()->fatal(errors::fs::invalid);
+				switch (fni->Action) {
 
-					fs->notifyFileChange(path, true);
-					break;
+					case FILE_ACTION_REMOVED:
 
-				case FILE_ACTION_ADDED:
+						if (!fs->exists(path))
+							System::log()->fatal(errors::fs::invalid);
 
-					fs->notifyFileChange(path, false);
-					break;
+						fs->notifyFileChange(path, FileChange::REM, false, {});
+						break;
 
-				case FILE_ACTION_MODIFIED:
+					case FILE_ACTION_ADDED:
 
-					if (!fs->exists(path))
-						System::log()->fatal(errors::fs::invalid);
+						stat(path.c_str(), &st);
 
-					fs->notifyFileChange(path, false);
-					break;
+						fs->notifyFileChange(path, FileChange::ADD, !S_ISREG(st.st_mode), {});
+						break;
 
-				case FILE_ACTION_RENAMED_NEW_NAME:
-				case FILE_ACTION_RENAMED_OLD_NAME:
+					case FILE_ACTION_MODIFIED:
 
-					//fs->notifyFileChange(path, false);
-					break;
+						if (!fs->exists(path))
+							System::log()->fatal(errors::fs::invalid);
 
-				default:
-					System::log()->fatal(errors::fs::invalid);
+						fs->notifyFileChange(path, FileChange::MOD, false, {});
+						break;
 
-			}
+					case FILE_ACTION_RENAMED_OLD_NAME:
 
-			int dbg = 0;
-			dbg;
+						fni = (FILE_NOTIFY_INFORMATION*)((u8*)fni + fni->NextEntryOffset);
+
+						if (fni->Action != FILE_ACTION_RENAMED_NEW_NAME)
+							System::log()->fatal(errors::fs::illegal);
+
+						newPath = getPath(fni);
+
+						stat(newPath.c_str(), &st);
+
+						fs->notifyFileChange(path, FileChange::MOV, false, newPath);
+						break;
+
+					default:
+						System::log()->fatal(errors::fs::illegal);
+
+				}
+
+				fni = fni->NextEntryOffset ? (FILE_NOTIFY_INFORMATION*)((u8*)fni + fni->NextEntryOffset) : nullptr;
+
+			} while (fni);
+
+			System::end();
 
 		}
 
 		CloseHandle(directory);
+		free(buffer);
 	}
 
 	void WFileSystem::initFileWatcher() {
@@ -146,7 +185,7 @@ namespace oic {
 		for (String &dir : directories) {
 
 			FileInfo subdir = {
-				p->path + "/" + dir,
+				p->path + "/" + dir, dir,
 				0, 0, nullptr, 0,
 				p->id, localSize(),
 				0, 0, 0,
@@ -168,7 +207,7 @@ namespace oic {
 		for (String &fil : files) {
 
 			FileInfo subfil = {
-				p->path + "/" + fil,
+				p->path + "/" + fil, fil,
 				0, 0, nullptr, 0,
 				p->id, localSize(),
 				0, 0, 0,

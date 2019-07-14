@@ -41,6 +41,16 @@ constexpr usz operator ""_usz(unsigned long long test) { return (usz)test; }
 constexpr f32 operator ""_f32(long double test) { return (f32)test; }
 constexpr f64 operator ""_f64(long double test) { return (f64)test; }
 
+constexpr usz KiB = 1024;
+constexpr usz MiB = KiB * KiB;
+constexpr usz GiB = KiB * MiB;
+constexpr usz TiB = KiB * GiB;
+
+constexpr usz operator ""_KiB(unsigned long long test) { return (usz)test * KiB; }
+constexpr usz operator ""_MiB(unsigned long long test) { return (usz)test * MiB; }
+constexpr usz operator ""_GiB(unsigned long long test) { return (usz)test * GiB; }
+constexpr usz operator ""_TiB(unsigned long long test) { return (usz)test * TiB; }
+
 constexpr u8 u8_MAX = 0xFF_u8;
 constexpr u8 u8_MIN = 0_u8;
 constexpr u16 u16_MAX = 0xFFFF_u16;

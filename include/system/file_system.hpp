@@ -18,13 +18,21 @@ namespace oic {
     //!The queried info about a file
     //The layout of a recursive file structure:
     //folders, files, recursive
+	//TODO: Make this only editable by FileSystem
     struct FileInfo {
+
+		//friend class FileSystem;
 
 		//!The difference between two file handles
 		using SizeType = FileHandle;
 
-        //!The full path in oic representation
-        String path{};
+	//private:
+
+		//!The full path in oic representation
+		String path{};
+
+		//!The file/folder name (can't contain any slashes)
+		String name{};
 
         //!The total size of the file
         //When the file is a folder, this is set to 0
@@ -80,22 +88,38 @@ namespace oic {
 
     };
 
-    //!A callback for handling file changes and loops
-    using FileCallback = void (*)(class FileSystem*, const FileInfo&);
+	//!The types of file changes
+	//ADD/REM = user or program added file to / removed file from the file system
+	//MOD = user or program changed the contents of the file
+	//MOV = user or program renamed or moved the file
+	enum class FileChange {
+		REM,
+		ADD,
+		MOD,
+		MOV
+	};
 
     //!A callback for handling file changes and loops
-    using FileChangeCallback = void (*)(class FileSystem*, const FileInfo&, bool remove);
+    using FileCallback = void (*)(class FileSystem*, FileInfo&);
+
+    //!A callback for handling file changes and loops
+    using FileChangeCallback = void (*)(class FileSystem*, const FileInfo&, FileChange);
 
     //!The class responsible for handling file I/O
     //A file system can also be implemented for an archive as well as a native file system
     //Every file system supports virtual files, though local and global files aren't always guaranteed
+	//
     //~/ is the virtual file system (READ)
     //./ is the local or virtual file system (READ_WRITE)
     //../ and ./ get resolved to form the final path
     //\ is disallowed
     //This is called oic file notation
+	//
 	//Each file system has to handle keeping the file system up to date
-	//Note: Keep in mind that FileInfo& is only valid while the FileSystem hasn't changed yet, use file handles or paths instead
+	//
+	//Note: Keep in mind that FileInfo& is only valid while the FileSystem hasn't resized yet
+	//FileHandles can change too, but can still be valid after file system resize
+	//Use paths to avoid referencing incorrect data or files
     class FileSystem {
 
     public:
@@ -156,7 +180,11 @@ namespace oic {
 		bool exists(const String &path) const;
 
         //!Called when a file has changed
-        void notifyFileChange(const String &path, bool isRemoved);
+		//@param[in] path The target file object with oic file notation
+		//@param[in] change The change applied to the file
+		//@param[in] isFolder If the file is a folder (only used if FileChange == ADD)
+		//@param[in] newPath Only used if FileChange::MOV for moving the file
+        void notifyFileChange(const String &path, FileChange change, bool isFolder, const String &newPath);
 
         //!Read a (part of a) file into a buffer
         //@param[in] file The target file object
@@ -196,20 +224,24 @@ namespace oic {
 			return write(get(file), buffer, size, bufferOffset, fileOffset);
 		}
 
-  //      //!Add a directory or file
-  //      //@param[in] file The newly created file
-  //      //@return bool success
-  //      bool add(const FileInfo &file);
+		//!Add a directory or file
+		//@param[in] path The path in oic file notation
+		//@param[in] isFolder If the file is considered a folder
+		//@return bool success
+		void add(const String &path, bool isFolder);
 
-		////!Remove a directory or file
-		////@param[in] file The target file object
-  //      //@return bool success
-		//bool remove(FileInfo &file);
+		//!Remove a directory or file
+		//@param[in] file The target file object
+		//@return bool success
+		//bool remove(FileInfo &file); TODO:
 
 		//Sizes of the file system
 
 		FileInfo::SizeType localSize() const;
 		FileInfo::SizeType virtualSize() const;
+
+		const List<FileInfo> &virtualFile() const;
+		const List<FileInfo> &localFile() const;
 
     protected:
 
@@ -223,7 +255,7 @@ namespace oic {
         virtual void initFiles() = 0;
 
 		//!Used to handle file changes and update the metadata for the file
-		virtual void onFileChange(FileInfo &, bool) {}
+		virtual void onFileChange(FileInfo &, FileChange) {}
 
 		//!Adds the representation of a file
 		//Called by the child
@@ -231,8 +263,17 @@ namespace oic {
 
     private:
 
+		//!Helper function to obtain parts of the path (parses the ../ and ./ first)
+		static usz obtainPath(const String &path, List<String> &splits);
+
 		//!Called on file remove
 		void notifyFileRemove(FileHandle handle, bool isLocal);
+
+		//!Called on file add
+		void notifyFileAdd(const String &path, bool isLocal, bool isDirectory = false);
+
+		//!Rename file (no recursion)
+		void rename(FileInfo &info, const String &path, bool setName);
 
 		//!Whether or not the local file system is utilized
 		bool allowLocalFiles;

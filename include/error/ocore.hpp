@@ -9,6 +9,9 @@ namespace oic::errors {
 		//!Occurs when the user uses a file path that can't be resolved (global files, including backslashes or escaping file system)
 		static constexpr c8 invalid[] = "The file path is invalid";
 
+		//!Occurs when the local file system implementation is out of memory
+		static constexpr c8 outOfMemory[] = "The file system is out of memory";
+
 		//!Occurs when the file or folder cannot be found in the file system
 		static constexpr c8 nonExistent[] = "The requested file object doesn't exist";
 

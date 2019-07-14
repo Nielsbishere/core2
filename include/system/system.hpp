@@ -1,4 +1,5 @@
 #pragma once
+#include <mutex>
 
 namespace oic {
 
@@ -30,6 +31,12 @@ namespace oic {
 		//!Wait until the viewport manager is done and everything can be cleaned up
 		static void wait();
 
+		//!Ready the system for the current thread
+		static void begin();
+
+		//!Ready the system for other threads
+		static void end();
+
 	protected:
 
 		System(LocalFileSystem *files_, Allocator *allocator_, ViewportManager *viewportManager_, Log *nativeLog);
@@ -46,6 +53,8 @@ namespace oic {
 		Allocator *allocator_{};
 		ViewportManager *viewportManager_{};
 		Log *log_{}, *nativeLog{};
+
+		std::mutex mutex;
 
 		bool isActive = true;
 

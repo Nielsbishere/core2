@@ -27,7 +27,7 @@ namespace oic {
 	protected:
 
 		//!Update the file size and modification time of the local folder
-		void onFileChange(FileInfo &path, bool remove) final override;
+		void onFileChange(FileInfo &path, FileChange change) final override;
 
 		//!Create a folder in the physical directory
 		void mkdir(FileInfo &file) final override;
@@ -51,8 +51,8 @@ namespace oic {
 
 		//!Called on virtual file system change
 		//@param[inout] FileInfo &file
-		//@param[in] bool isRemoved
-		virtual void onVirtualFileChange(FileInfo &, bool) { }
+		//@param[in] FileChange change
+		virtual void onVirtualFileChange(FileInfo &, FileChange) { }
 
 		//!Initialize the watcher that updates the local file system
 		//Should be called from child class

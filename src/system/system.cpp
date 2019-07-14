@@ -16,7 +16,7 @@ namespace oic {
 
 	System::~System() {
 
-		if(log_ != nativeLog)
+		if (log_ != nativeLog)
 			delete log_;
 
 		system = nullptr;
@@ -29,8 +29,8 @@ namespace oic {
 
 		system->log_ = log ? log : system->nativeLog;
 	}
-    
-    System *System::system = nullptr;
+
+	System *System::system = nullptr;
 
 	void System::terminate() {
 		system->isActive = false;
@@ -41,6 +41,14 @@ namespace oic {
 			/*system->viewportManager_->update();
 			system->files_->update();*/
 		}
+	}
+
+	void System::begin() {
+		system->mutex.lock();
+	}
+
+	void System::end() {
+		system->mutex.unlock();
 	}
 
 
