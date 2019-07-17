@@ -50,4 +50,11 @@ namespace oic::errors {
 
 	}
 
+	//!Thrown by types
+	namespace typ {
+
+		static constexpr c8 outOfBounds[] = "Operation was out of bounds";
+
+	}
+
 }
