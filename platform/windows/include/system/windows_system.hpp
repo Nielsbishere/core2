@@ -23,6 +23,8 @@ namespace oic::windows {
 		//WViewportManager wviewportManager;
 		WLog wlog;
 
+	public:
+
 		static const WindowsSystem windowsSystem;
 
 	};
