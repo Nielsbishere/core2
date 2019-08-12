@@ -123,6 +123,11 @@ using Array = std::array<T, siz>;
 template<typename K, typename V>
 using HashMap = std::unordered_map<K, V>;
 
+#include <bitset>
+
+template<usz siz>
+using Bitset = std::bitset<siz>;
+
 //Generate a signed version of the unsigned integer
 
 template<typename T> struct Signed {};
