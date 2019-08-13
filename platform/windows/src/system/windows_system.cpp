@@ -7,7 +7,7 @@ namespace oic {
 		//WindowsSystem::WindowsSystem(): System(&wfileSystem, &wallocator, &wviewportManager, &wlog) { }
 
 		WindowsSystem::WindowsSystem():
-			System(&wfileSystem, (oic::Allocator *)nullptr, (oic::ViewportManager *)nullptr, &wlog) {}
+			System(&wfileSystem, (oic::Allocator*)nullptr, &wviewportManager, &wlog) {}
 
 		const WindowsSystem WindowsSystem::windowsSystem = WindowsSystem();
 

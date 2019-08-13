@@ -2,6 +2,7 @@
 #include "system/system.hpp"
 #include "system/windows_log.hpp"
 #include "system/windows_file_system.hpp"
+#include "system/windows_viewport_manager.hpp"
 
 namespace oic::windows {
 
@@ -20,7 +21,7 @@ namespace oic::windows {
 
 		WFileSystem wfileSystem;
 		//WAllocator wallocator;
-		//WViewportManager wviewportManager;
+		WViewportManager wviewportManager;
 		WLog wlog;
 
 	public:

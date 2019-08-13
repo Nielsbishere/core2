@@ -2,6 +2,7 @@
 #include "system/system.hpp"
 #include "system/log.hpp"
 #include "error/ocore.hpp"
+#include "system/viewport_manager.hpp"
 
 namespace oic {
 
@@ -13,6 +14,8 @@ namespace oic {
 	}
 
 	System::~System() {
+
+		viewportManager_->clear();
 
 		if (log_ != nativeLog)
 			delete log_;
@@ -27,17 +30,6 @@ namespace oic {
 			delete system->log_;
 
 		system->log_ = log ? log : system->nativeLog;
-	}
-
-	void System::terminate() {
-		system->isActive = false;
-	}
-
-	void System::wait() {
-		while (system->isActive) {
-			/*system->viewportManager_->update();
-			system->files_->update();*/
-		}
 	}
 
 	void System::begin() {

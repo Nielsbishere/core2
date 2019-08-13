@@ -128,6 +128,14 @@ using HashMap = std::unordered_map<K, V>;
 template<usz siz>
 using Bitset = std::bitset<siz>;
 
+using Vec2u = Array<u32, 2>;
+using Vec3u = Array<u32, 3>;
+using Vec4u = Array<u32, 4>;
+
+using Vec2i = Array<i32, 2>;
+using Vec3i = Array<i32, 3>;
+using Vec4i = Array<i32, 4>;
+
 //Generate a signed version of the unsigned integer
 
 template<typename T> struct Signed {};
