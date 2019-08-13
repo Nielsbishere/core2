@@ -27,9 +27,12 @@ namespace oic {
 		//Hints of how this viewport should be created
 		//These are only HINTS, the underlying implementation can decide if its appropriate
 		Hint hint;
+		
+		//User data
+		void *userData;
 
-		ViewportInfo(const String &name, Vec2i offset, Vec2u size, u32 layer, Hint hint = NONE):
-			name(name), offset(offset), size(size), layer(layer), id(), hint(hint) {}
+		ViewportInfo(const String &name, Vec2i offset, Vec2u size, u32 layer, Hint hint = NONE, void *userData = nullptr):
+			name(name), offset(offset), size(size), layer(layer), id(), hint(hint), userData(userData) {}
 
 		inline bool hasHint(Hint h) const {
 			return hint & h;
