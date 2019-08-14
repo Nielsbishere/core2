@@ -13,12 +13,12 @@ namespace oic::windows {
 
 	struct WWindow {
 
-		String name;
+		ViewportInfo *info;
 		HWND hwnd;
 		bool running;
 		std::future<void> thr;
 
-		WWindow(ViewportInfo &info, HINSTANCE instance);
+		WWindow(ViewportInfo *info, HINSTANCE instance);
 		~WWindow();
 
 		WWindow(WWindow &&w) = delete;
@@ -34,17 +34,19 @@ namespace oic::windows {
 		WViewportManager();
 		~WViewportManager() = default;
 
-		virtual void add(ViewportInfo &info) final override;
-		virtual void del(const ViewportInfo &info) final override;
+		virtual void add(ViewportInfo *info) final override;
+		virtual void del(const ViewportInfo *info) final override;
 
 		struct WViewportThreadData {
-			ViewportInfo &info;
+			ViewportInfo *info;
 			std::mutex m;
 			std::condition_variable cv;
 			bool ready = false;
 		};
 
 		void pull(WViewportThreadData *data);
+
+		virtual void redraw(const ViewportInfo *info) final override;
 
 	private:
 

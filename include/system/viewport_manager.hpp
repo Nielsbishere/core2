@@ -1,5 +1,6 @@
 #pragma once
 #include "types/types.hpp"
+#include <mutex>
 
 namespace oic {
 
@@ -31,8 +32,16 @@ namespace oic {
 		//User data
 		void *userData;
 
+		//Used for when communicating data to sync
+		std::mutex fence;
+
 		ViewportInfo(const String &name, Vec2i offset, Vec2u size, u32 layer, Hint hint = NONE, void *userData = nullptr):
 			name(name), offset(offset), size(size), layer(layer), id(), hint(hint), userData(userData) {}
+
+		ViewportInfo(ViewportInfo&&) = delete;
+		ViewportInfo &operator=(ViewportInfo&&) = delete;
+		ViewportInfo(const ViewportInfo&) = delete;
+		ViewportInfo &operator=(const ViewportInfo&) = delete;
 
 		inline bool hasHint(Hint h) const {
 			return hint & h;
@@ -56,41 +65,44 @@ namespace oic {
 		ViewportManager &operator=(const ViewportManager&) = delete;
 		ViewportManager &operator=(ViewportManager&&) = delete;
 
-		inline const ViewportInfo *find(const String &name) const {
+		inline const ViewportInfo *find(const String &name) const { return ((ViewportManager*)this)->find(name); }
 
-			auto it = idMap.find(name);
-
-			if (it == idMap.end())
-				return nullptr;
-
-			return viewports.data() + it->second;
-		}
-
-		inline const ViewportInfo &operator[](usz i) const {
+		inline const ViewportInfo *operator[](usz i) const {
 			return viewports[i];
 		}
 
-		inline auto find(const ViewportInfo &info) {
+		inline auto find(const ViewportInfo *info) {
 			return std::find(viewports.begin(), viewports.end(), info);
 		}
 
-		inline bool contains(const ViewportInfo &info) {
+		inline bool contains(const ViewportInfo *info) {
 			return find(info) != viewports.end();
 		}
 
-		bool destroy(const ViewportInfo &info);
+		bool destroy(const ViewportInfo *info);
 		bool create(const ViewportInfo &info);
 
 		void clear();
 
+		//Called to wait for the viewport to be available (unused by the I/O loop)
+		void waitSignal(const ViewportInfo *info);
+
+		virtual void redraw(const ViewportInfo *info) = 0;
+
+		//Called to make the viewport available (so it can be used by the I/O loop)
+		void resetSignal(const ViewportInfo *info);
+
+
 	protected:
 
-		virtual void add(ViewportInfo &info) = 0;
-		virtual void del(const ViewportInfo &info) = 0;
+		ViewportInfo *find(const String &name);
+
+		virtual void add(ViewportInfo *info) = 0;
+		virtual void del(const ViewportInfo *info) = 0;
 
 	private:
 
-		List<ViewportInfo> viewports;
+		List<ViewportInfo*> viewports;
 		HashMap<String, usz> idMap;
 
 	};
