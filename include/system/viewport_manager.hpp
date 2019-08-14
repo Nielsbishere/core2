@@ -87,11 +87,11 @@ namespace oic {
 		//Called to wait for the viewport to be available (unused by the I/O loop)
 		void waitSignal(const ViewportInfo *info);
 
-		virtual void redraw(const ViewportInfo *info) = 0;
-
 		//Called to make the viewport available (so it can be used by the I/O loop)
 		void resetSignal(const ViewportInfo *info);
 
+		//Requests a redraw of the screen
+		virtual void redraw(const ViewportInfo *info) = 0;
 
 	protected:
 

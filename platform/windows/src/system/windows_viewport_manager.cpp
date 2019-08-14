@@ -153,7 +153,7 @@ namespace oic::windows {
 
 					//TODO: This should be done by a callback!
 
-					u16 *pixelBuffer = (u16*)0x20000;
+					u32 *pixelBuffer = (u32*)0x20000;
 					constexpr usz w = 160, h = 144;
 
 					RECT r;
@@ -170,9 +170,7 @@ namespace oic::windows {
 							usz x = usz(f64(i) / (r.right - 1) * (w - 1));
 							usz y = usz(f64(j) / (r.bottom - 1) * (h - 1));
 
-							u16 &pix = pixelBuffer[x + y * w];
-
-							pixels[j * r.right + i] = RGB((pix << 3) & 0xFF, (pix >> 2) & ~7, (pix >> 7) & ~7);
+							pixels[j * r.right + i] = pixelBuffer[x + y * w];
 						}
 
 					BITMAPINFOHEADER bi;
@@ -214,6 +212,8 @@ namespace oic::windows {
 					ptr->info->size = { u32(r.right - r.left), u32(r.bottom - r.top) };
 				}
 				break;
+
+			//TODO: WM_MOVE
 		}
 
 		return DefWindowProc(hwnd, message, wParam, lParam);
