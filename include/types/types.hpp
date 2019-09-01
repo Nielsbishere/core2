@@ -50,6 +50,15 @@ constexpr usz operator ""_KiB(unsigned long long test) { return (usz)test * KiB;
 constexpr usz operator ""_MiB(unsigned long long test) { return (usz)test * MiB; }
 constexpr usz operator ""_GiB(unsigned long long test) { return (usz)test * GiB; }
 constexpr usz operator ""_TiB(unsigned long long test) { return (usz)test * TiB; }
+constexpr usz operator ""_K(unsigned long long test) { return (usz)test * 1'000; }
+constexpr usz operator ""_M(unsigned long long test) { return (usz)test * 1'000'000; }
+constexpr usz operator ""_B(unsigned long long test) { return (usz)test * 1'000'000'000; }
+constexpr u64 operator ""_d(unsigned long long test) { return test * 8'640'000'000'000; }	//days to ns
+constexpr u64 operator ""_h(unsigned long long test) { return test * 360'000'000'000; }		//hours to ns
+constexpr u64 operator ""_m(unsigned long long test) { return test * 60'000'000'000; }		//mins to ns
+constexpr u64 operator ""_s(unsigned long long test) { return test * 1'000'000'000; }		//seconds to ns
+constexpr u64 operator ""_ms(unsigned long long test) { return test * 1'000'000; }			//mili seconds to ns
+constexpr u64 operator ""_mus(unsigned long long test) { return test * 1'000; }				//micro seconds to ns
 
 constexpr u8 u8_MAX = 0xFF_u8;
 constexpr u8 u8_MIN = 0_u8;

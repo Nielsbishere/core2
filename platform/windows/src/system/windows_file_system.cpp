@@ -2,6 +2,7 @@
 #include "system/system.hpp"
 #include "system/log.hpp"
 #include "error/ocore.hpp"
+#include "system/allocator.hpp"
 
 #include <Windows.h>
 #include <codecvt>
@@ -51,33 +52,46 @@ namespace oic {
 		HANDLE directory = CreateFileA(
 			fs->getLocalPath().c_str(), GENERIC_READ, 
 			FILE_SHARE_READ | FILE_SHARE_WRITE | FILE_SHARE_DELETE, 
-			NULL, OPEN_EXISTING, FILE_FLAG_BACKUP_SEMANTICS, NULL
+			NULL, OPEN_EXISTING, FILE_FLAG_BACKUP_SEMANTICS | FILE_FLAG_OVERLAPPED, NULL
 		);
 
 		if (directory == INVALID_HANDLE_VALUE)
 			System::log()->fatal(errors::fs::invalid);
 
-		constexpr usz bufferSize = 1_MiB;
-		u8 *buffer = (u8*) malloc(bufferSize);
+		constexpr usz bufferSize = 16_MiB;
+		u8 *buffer = oic::System::allocator()->allocArray<u8>(bufferSize);
 
-		if (!buffer) {
-			System::log()->fatal(errors::fs::outOfMemory);
-			return;
-		}
+		HANDLE iocp = CreateIoCompletionPort(directory, NULL, NULL, 1);
+		HRESULT hr = GetLastError();
+
+		if(hr != S_OK)
+			System::log()->fatal(errors::fs::illegal);
+
+		OVERLAPPED overlapped;
+		ZeroMemory(&overlapped, sizeof(overlapped));
 
 		while (fs->running) {
-
-			DWORD returned{};
 
 			if(!ReadDirectoryChangesW(
 				directory, buffer, bufferSize, TRUE,
 				FILE_NOTIFY_CHANGE_FILE_NAME | FILE_NOTIFY_CHANGE_DIR_NAME | FILE_NOTIFY_CHANGE_LAST_WRITE,
-				&returned, NULL, NULL
+				NULL, &overlapped, NULL
 			))
 				System::log()->fatal(errors::fs::invalid);
 
-			if (returned == 0)
-				System::log()->fatal(errors::fs::outOfMemory);
+			DWORD returned{};
+			LPOVERLAPPED po;
+			ULONG_PTR key;
+
+			if (!GetQueuedCompletionStatus(iocp, &returned, &key, &po, 1000)) {
+
+				hr = GetLastError();
+
+				if (hr == WAIT_TIMEOUT)
+					continue;
+
+				System::log()->fatal(errors::fs::illegal);
+			}
 
 			FILE_NOTIFY_INFORMATION *fni = (FILE_NOTIFY_INFORMATION*)buffer;
 			struct stat st;
@@ -139,6 +153,7 @@ namespace oic {
 
 		}
 
+		CloseHandle(iocp);
 		CloseHandle(directory);
 		free(buffer);
 	}

@@ -3,13 +3,9 @@
 #include "system/windows_log.hpp"
 #include "system/windows_file_system.hpp"
 #include "system/windows_viewport_manager.hpp"
+#include "system/windows_allocator.hpp"
 
 namespace oic::windows {
-
-	class LocalFileSystem;
-	class Allocator;
-	class ViewportManager;
-	class Log;
 
 	//!Windows implementation of a system
 	class WindowsSystem : public System {
@@ -19,14 +15,18 @@ namespace oic::windows {
 		WindowsSystem();
 		~WindowsSystem() = default;
 
+		void sleep(u64 time) final override;
+
 		WFileSystem wfileSystem;
-		//WAllocator wallocator;
+		WAllocator wallocator;
 		WViewportManager wviewportManager;
 		WLog wlog;
 
 	public:
 
 		static const WindowsSystem windowsSystem;
+
+		void (*ntDelayExecution)(bool alertable, void *largeInteger);
 
 	};
 

@@ -16,6 +16,12 @@ namespace oic::windows {
 	LRESULT CALLBACK onCallback(HWND hwnd, UINT message, WPARAM wParam, LPARAM lParam);
 
 	WViewportManager::WViewportManager(): instance(GetModuleHandleA(NULL)) {}
+	
+	WViewportManager::~WViewportManager() {
+
+		for (ViewportInfo *info : *this)
+			del(info);
+	}
 
 	WWindow::WWindow(ViewportInfo *info, HINSTANCE instance): hwnd(), running(false), info(info) {
 
@@ -93,6 +99,7 @@ namespace oic::windows {
 		data->cv.notify_one();
 
 		MSG msg, *msgp = &msg;
+		bool quit = false;
 
 		while (w->running) {
 
@@ -105,13 +112,25 @@ namespace oic::windows {
 
 				w->info->fence.unlock();
 
+				//Exit called from main thread
+				if (msg.message == WM_DESTROY) {
+					quit = true;
+					DestroyWindow(w->hwnd);
+					continue;
+				}
+
+				//Exit called from current thread
 				if (msg.hwnd == NULL)
 					break;
 			}
 		}
 
 		w->hwnd = NULL;
-		destroy(w->info);
+
+		if (!quit)
+			destroy(w->info);
+		else
+			destroyTopLevel(w->info);
 	}
 
 	void WViewportManager::add(ViewportInfo *info) {
@@ -133,8 +152,8 @@ namespace oic::windows {
 
 	WWindow::~WWindow() {
 		if (hwnd) {
-			DestroyWindow(hwnd);
 			running = false;
+			PostMessageA(hwnd, WM_DESTROY, NULL, NULL);
 			thr.wait();
 		}
 	}
@@ -197,6 +216,9 @@ namespace oic::windows {
 					auto *ptr = (WWindow*)GetWindowLongPtrA(hwnd, 0);
 					ptr->running = false;
 				}
+				break;
+
+			case WM_DESTROY:
 				break;
 
 			case WM_SIZE:

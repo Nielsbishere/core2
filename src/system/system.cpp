@@ -22,6 +22,7 @@ namespace oic {
 
 		if(system == this)
 			system = nullptr;
+		
 	}
 
 	void System::setCustomLogCallback(Log *log) {
@@ -38,6 +39,10 @@ namespace oic {
 
 	void System::end() {
 		system->mutex.unlock();
+	}
+
+	void System::wait(u64 time) {
+		system->sleep(time);
 	}
 
 

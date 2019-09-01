@@ -53,6 +53,7 @@ namespace oic {
 
 	};
 
+	//Requires implementation to handle destruction of viewports in destructor
 	class ViewportManager {
 
 	public:
@@ -93,9 +94,13 @@ namespace oic {
 		//Requests a redraw of the screen
 		virtual void redraw(const ViewportInfo *info) = 0;
 
+		List<ViewportInfo*>::const_iterator begin() const;
+		List<ViewportInfo*>::const_iterator end() const;
+
 	protected:
 
 		ViewportInfo *find(const String &name);
+		bool destroyTopLevel(const ViewportInfo *info);		//Only destroys top level data
 
 		virtual void add(ViewportInfo *info) = 0;
 		virtual void del(const ViewportInfo *info) = 0;

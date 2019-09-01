@@ -1,5 +1,6 @@
 #pragma once
 #include <mutex>
+#include "types/types.hpp"
 
 namespace oic {
 
@@ -31,10 +32,17 @@ namespace oic {
 		//!Ready the system for other threads
 		static void end();
 
+		//!Attempt to wait a number of ns
+		//The accuracy is dependent on the platform, but it is specified in ns
+		//Currently expected time step is approx. 100ns.
+		static void wait(u64 time);
+
 	protected:
 
 		System(LocalFileSystem *files_, Allocator *allocator_, ViewportManager *viewportManager_, Log *nativeLog);
 		virtual ~System();
+
+		virtual void sleep(u64 time) = 0;
 
 		System(const System &) = delete;
 		System(System &&) = delete;

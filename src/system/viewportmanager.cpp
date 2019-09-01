@@ -21,6 +21,24 @@ namespace oic {
 		return true;
 	}
 
+	bool ViewportManager::destroyTopLevel(const ViewportInfo *info) {
+
+		auto it = find(info);
+
+		if (it == viewports.end())
+			return false;
+
+		for (u32 i = (*it)->id + 1, end = u32(viewports.size()); i < end; ++i) {
+			--viewports[i]->id;
+			--idMap.find(viewports[i]->name)->second;
+		}
+
+		idMap.erase(info->name);
+		viewports.erase(it);
+		delete info;
+		return true;
+	}
+
 	bool ViewportManager::create(const ViewportInfo &info) {
 
 		if (find(info.name) != nullptr)
@@ -69,6 +87,14 @@ namespace oic {
 
 	void ViewportManager::resetSignal(const ViewportInfo *info) {
 		 ((ViewportInfo*)info)->fence.unlock();
+	}
+
+	List<ViewportInfo*>::const_iterator ViewportManager::begin() const {
+		return viewports.begin();
+	}
+
+	List<ViewportInfo*>::const_iterator ViewportManager::end() const {
+		return viewports.end();
 	}
 
 }

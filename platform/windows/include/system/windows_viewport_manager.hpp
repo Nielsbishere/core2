@@ -32,7 +32,7 @@ namespace oic::windows {
 	public:
 
 		WViewportManager();
-		~WViewportManager() = default;
+		~WViewportManager();
 
 		virtual void add(ViewportInfo *info) final override;
 		virtual void del(const ViewportInfo *info) final override;
