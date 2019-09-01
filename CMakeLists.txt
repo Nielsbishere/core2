@@ -36,8 +36,9 @@ if(WIN32)
 endif()
 
 
-add_executable(
+add_library(
 	ocore
+	STATIC
 	${ocoreHpp}
 	${ocoreCpp}
 	${platformHpp}

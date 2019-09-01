@@ -25,12 +25,6 @@ namespace oic {
 		//@note The System class handles cleanup of the Log* passed
 		static void setCustomLogCallback(Log *log);
 
-		//!Terminate the program; will stop System from updating
-		static void terminate();
-
-		//!Wait until the viewport manager is done and everything can be cleaned up
-		static void wait();
-
 		//!Ready the system for the current thread
 		static void begin();
 
@@ -55,8 +49,6 @@ namespace oic {
 		Log *log_{}, *nativeLog{};
 
 		std::mutex mutex;
-
-		bool isActive = true;
 
 		//System class
 

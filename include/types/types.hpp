@@ -122,3 +122,27 @@ using Array = std::array<T, siz>;
 
 template<typename K, typename V>
 using HashMap = std::unordered_map<K, V>;
+
+#include <bitset>
+
+template<usz siz>
+using Bitset = std::bitset<siz>;
+
+using Vec2u = Array<u32, 2>;
+using Vec3u = Array<u32, 3>;
+using Vec4u = Array<u32, 4>;
+
+using Vec2i = Array<i32, 2>;
+using Vec3i = Array<i32, 3>;
+using Vec4i = Array<i32, 4>;
+
+//Generate a signed version of the unsigned integer
+
+template<typename T> struct Signed {};
+template<> struct Signed<u8> { using v = i8; };
+template<> struct Signed<u16> { using v = i16; };
+template<> struct Signed<u32> { using v = i32; };
+template<> struct Signed<u64> { using v = i64; };
+
+template<typename T>
+using Signed_v = typename Signed<T>::v;

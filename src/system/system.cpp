@@ -2,24 +2,26 @@
 #include "system/system.hpp"
 #include "system/log.hpp"
 #include "error/ocore.hpp"
+#include "system/viewport_manager.hpp"
 
 namespace oic {
 
 	System::System(LocalFileSystem *files_, Allocator *allocator_, ViewportManager *viewportManager_, Log *nativeLog):
 		files_(files_), allocator_(allocator_), viewportManager_(viewportManager_), nativeLog(nativeLog), log_(nativeLog) {
 
-		if (system)
-			nativeLog->fatal(errors::sys::alreadyExists);
-
-		system = this;
+		if (!system)
+			system = this;
 	}
 
 	System::~System() {
 
+		viewportManager_->clear();
+
 		if (log_ != nativeLog)
 			delete log_;
 
-		system = nullptr;
+		if(system == this)
+			system = nullptr;
 	}
 
 	void System::setCustomLogCallback(Log *log) {
@@ -28,19 +30,6 @@ namespace oic {
 			delete system->log_;
 
 		system->log_ = log ? log : system->nativeLog;
-	}
-
-	System *System::system = nullptr;
-
-	void System::terminate() {
-		system->isActive = false;
-	}
-
-	void System::wait() {
-		while (system->isActive) {
-			/*system->viewportManager_->update();
-			system->files_->update();*/
-		}
 	}
 
 	void System::begin() {

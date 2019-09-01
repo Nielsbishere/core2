@@ -1,5 +1,6 @@
 #pragma once
 #include "types/types.hpp"
+#include <sstream>
 
 namespace oic {
 
@@ -30,8 +31,11 @@ namespace oic {
 		void println(const String &str, LogLevel level);
 		void println(const String &str);
 
-		template<LogLevel level = LogLevel::DEBUG>
-		inline void println(const String &str);
+		template<LogLevel level = LogLevel::DEBUG, typename ...args>
+		inline void println(const args &...arg);
+
+		template<typename ...args>
+		static inline String concat(const args &...arg);
 
 		//!Used to print the current stacktrace
 		//@param[in] skip How many function calls to skip (0 by default)
@@ -47,8 +51,17 @@ namespace oic {
 
 	};
 
-	template<LogLevel level>
-	void Log::println(const String &str){
+	template<typename ...args>
+	String Log::concat(const args &...arg) {
+		std::stringstream ss;
+		((ss << arg), ...);
+		return ss.str();
+	}
+
+	template<LogLevel level, typename ...args>
+	void Log::println(const args &...arg){
+
+		const String str = concat(arg...);
 
 		if constexpr (level == LogLevel::DEBUG)
 			debug(str);
