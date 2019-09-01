@@ -4,13 +4,26 @@
 namespace oic {
 
     //!The access flags of a file
+	//NONE: The file doesn't have data or children to be read or written
     //READ: The file's data can be read
     //WRITE: The file's data can be written
     enum class FileAccess : u8 {
+		NONE = 0b00,
         READ = 0b01,
         WRITE = 0b10,
         READ_WRITE = 0b11
     };
+
+	//!The types of file changes
+	//ADD/REM = user or program added file to / removed file from the file system
+	//UPD = user or program updated the contents of the file
+	//MOV = user or program renamed or moved the file
+	enum class FileChange {
+		REM,
+		ADD,
+		UPD,
+		MOV
+	};
 
 	//!A handle to a file
 	using FileHandle = u32;
@@ -80,24 +93,16 @@ namespace oic {
 		//!Determines if this file can be accessed with these flags
         bool hasAccess(FileAccess flags) const;
 
-		//!Determines if this file is located in the virtual file system or the physical one
-		bool isVirtual() const;
+		//!Determines if this file can be accessed with these flags
+        static bool hasAccess(FileAccess target, FileAccess flags);
+
+		//!Determines if this file is located in the local file system or the virtual one
+		bool isLocal() const;
 
 		//!Determines if this file or folder has data attached to it
 		bool hasData() const;
 
     };
-
-	//!The types of file changes
-	//ADD/REM = user or program added file to / removed file from the file system
-	//MOD = user or program changed the contents of the file
-	//MOV = user or program renamed or moved the file
-	enum class FileChange {
-		REM,
-		ADD,
-		MOD,
-		MOV
-	};
 
     //!A callback for handling file changes and loops
     using FileCallback = void (*)(class FileSystem*, FileInfo&);
@@ -124,9 +129,13 @@ namespace oic {
 
     public:
 
-        //Constructors
+		//!Initialize the file system
+		//fileAccess[0] = permissions for virtual files
+		//fileAccess[1] = permissions for local files
+		//FileAccess::NONE can be used to disallow virtual or local files
+        FileSystem(const Array<FileAccess, 2> &fileAccess);
 
-        FileSystem(bool allowLocalFiles);
+		//Constructors
         virtual ~FileSystem() = default;
 
         FileSystem(const FileSystem&) = delete;
@@ -179,13 +188,6 @@ namespace oic {
 		//@return bool exists Whether the path leads to a valid path
 		bool exists(const String &path) const;
 
-        //!Called when a file has changed
-		//@param[in] path The target file object with oic file notation
-		//@param[in] change The change applied to the file
-		//@param[in] isFolder If the file is a folder (only used if FileChange == ADD)
-		//@param[in] newPath Only used if FileChange::MOV for moving the file
-        void notifyFileChange(const String &path, FileChange change, bool isFolder, const String &newPath);
-
         //!Read a (part of a) file into a buffer
         //@param[in] file The target file object
         //@param[out] buffer The output
@@ -226,30 +228,38 @@ namespace oic {
 
 		//!Add a directory or file
 		//@param[in] path The path in oic file notation
-		//@param[in] isFolder If the file is considered a folder
+		//@param[in] isFolder If the file is capable of having children
 		//@return bool success
-		void add(const String &path, bool isFolder);
+		bool add(const String &path, bool isFolder);
 
 		//!Remove a directory or file
-		//@param[in] file The target file object
+		//@param[in] path The path in oic file notation
 		//@return bool success
-		//bool remove(FileInfo &file); TODO:
+		bool rem(const String &path);
+
+		//!Update the metadata for a file
+		//@param[in] path The path in oic file notation
+		//@return bool success
+		bool upd(const String &path);
+
+		//!Move a file to a destination (and rename)
+		//@param[in] path The path in oic file notation
+		//@param[in] newPath The desintation path in oic file notation
+		//@return bool success
+		bool mov(const String &path, const String &newPath);
 
 		//Sizes of the file system
 
-		FileInfo::SizeType localSize() const;
-		FileInfo::SizeType virtualSize() const;
-
-		const List<FileInfo> &virtualFile() const;
-		const List<FileInfo> &localFile() const;
+		FileInfo::SizeType size(bool isLocal) const;
+		const List<FileInfo> &getFiles(bool isLocal) const;
 
     protected:
 
-		//!Creates a local folder
-		virtual void mkdir(FileInfo &) {}
+		//!Creates a local file
+		virtual bool make(FileInfo &) { return false; }
 
 		//!Creates the look up tables by file path
-		void resetLut();
+		void initLut();
     
         //!Should be called to initialize the file system cache
         virtual void initFiles() = 0;
@@ -257,26 +267,25 @@ namespace oic {
 		//!Used to handle file changes and update the metadata for the file
 		virtual void onFileChange(FileInfo &, FileChange) {}
 
-		//!Adds the representation of a file
-		//Called by the child
-		void addLocal(FileInfo &file);
+		//!Used to obtain files for modifications/initialization
+		List<FileInfo> &files(bool isLocal);
 
     private:
 
 		//!Helper function to obtain parts of the path (parses the ../ and ./ first)
 		static usz obtainPath(const String &path, List<String> &splits);
 
-		//!Called on file remove
-		void notifyFileRemove(FileHandle handle, bool isLocal);
-
-		//!Called on file add
-		void notifyFileAdd(const String &path, bool isLocal, bool isDirectory = false);
-
 		//!Rename file (no recursion)
 		void rename(FileInfo &info, const String &path, bool setName);
 
-		//!Whether or not the local file system is utilized
-		bool allowLocalFiles;
+		//!Remove a file
+		bool remove(FileHandle handle, bool isLocal);
+
+		//!The file access for the root nodes (and their children)
+		//fileAccess[isLocal]
+		//virtualAccess = fileAccess[0]
+		//localAccess = fileAccess[1]
+		Array<FileAccess, 2> fileAccess;
 
         //!File cache
         List<FileInfo> virtualFiles, localFiles;

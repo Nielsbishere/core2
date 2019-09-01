@@ -15,9 +15,15 @@ namespace oic::errors {
 		//!Occurs when the file or folder cannot be found in the file system
 		static constexpr c8 nonExistent[] = "The requested file object doesn't exist";
 
+		//!Occurs when the file or folder can already be found in the file system
+		static constexpr c8 exists[] = "The requested file object already exist";
+
 		//!Occurs when the operation is not supported by the file system
 		//For example if the file system doesn't allow local files and one is requested
 		static constexpr c8 notSupported[] = "The requested operation is not supported by the file system";
+
+		//!Occurs when the operation is not permitted
+		static constexpr c8 notPermitted[] = "The requested operation is not permitted";
 
 		//!Occurs when the operation is out of bounds
 		//E.g. reading or writing outside of the file's address space

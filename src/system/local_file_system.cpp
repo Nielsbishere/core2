@@ -5,7 +5,7 @@
 
 //64-bit types for Unix
 
-#if INTPTR_MAX == INT64_MAX
+#if INTPTR_MAX == INT64_MAX && !defined(_WIN32)
 	#define _FILE_OFFSET_BITS 64
 #endif
 
@@ -13,11 +13,16 @@
 
 //Platform wrappers
 
-#ifdef _WIN64
+#ifdef _WIN32
 	#include <direct.h>
+	#define S_ISREG(m) (((m) & S_IFMT) == S_IFREG)
+#endif
+
+#ifdef _WIN64
 	#define fseeko _fseeki64
 	#define stat _stat64
-	#define S_ISREG(m) (((m) & S_IFMT) == S_IFREG)
+#elif _WIN32
+	#define fseeko _fseek
 #else
 	#define _mkdir(x) mkdir(x, 0600)
 	#define fopen_s(res, ...) *(res) = fopen(__VA_ARGS__)
@@ -27,7 +32,9 @@
 
 namespace oic {
 
-	LocalFileSystem::LocalFileSystem(String localPath): FileSystem(true), localPath(localPath) { }
+	LocalFileSystem::LocalFileSystem(String localPath): 
+		FileSystem(Array<FileAccess, 2>{ FileAccess::READ, FileAccess::READ_WRITE }), 
+		localPath(localPath) {}
 
 	const String &LocalFileSystem::getLocalPath() const {
 		return localPath;
@@ -35,11 +42,16 @@ namespace oic {
 
 	bool LocalFileSystem::read(const FileInfo &file, Buffer &buffer, usz size, usz offset) const {
 
-		if (file.isVirtual())
+		if (!file.isLocal())
 			return readVirtual(file, buffer, size, offset);
 
 		if (file.isFolder) {
 			System::log()->fatal(errors::fs::illegal);
+			return false;
+		}
+
+		if (!file.hasAccess(FileAccess::READ)) {
+			System::log()->fatal(errors::fs::notPermitted);
 			return false;
 		}
 		
@@ -67,11 +79,16 @@ namespace oic {
 
 	bool LocalFileSystem::write(FileInfo &file, const Buffer &buffer, usz size, usz bufferOffset, usz fileOffset) {
 
-		if (file.isVirtual())
+		if (!file.isLocal())
 			return writeVirtual(file, buffer, size, bufferOffset, fileOffset);
 
 		if (file.isFolder) {
 			System::log()->fatal(errors::fs::illegal);
+			return false;
+		}
+
+		if (!file.hasAccess(FileAccess::WRITE)) {
+			System::log()->fatal(errors::fs::notPermitted);
 			return false;
 		}
 
@@ -101,14 +118,35 @@ namespace oic {
 
 		fwrite(buffer.data() + bufferOffset, 1, size, f);
 		fclose(f);
-		notifyFileChange(file.path, FileChange::MOD, false, {});
+		upd(file.path);
 		return true;
 	}
 
-	void LocalFileSystem::mkdir(FileInfo &file) {
+	bool LocalFileSystem::make(FileInfo &file) {
 
-		if (_mkdir(file.path.c_str()) != 0)
+		if (!file.isLocal()) {
 			System::log()->fatal(errors::fs::notSupported);
+			return false;
+		}
+
+		if (file.isFolder) {
+
+			if (_mkdir(file.path.c_str()) != 0) {
+				System::log()->fatal(errors::fs::illegal);
+				return false;
+			}
+
+		} else {
+
+			FILE *f{};
+			if (fopen_s(&f, file.path.c_str(), "w") != 0 || !f) {
+				System::log()->fatal(errors::fs::nonExistent);
+				return false;
+			}
+
+		}
+
+		return true;
 	}
 
 	void LocalFileSystem::onFileChange(FileInfo &file, FileChange change) {
@@ -116,7 +154,7 @@ namespace oic {
 		if (change == FileChange::REM)
 			return;
 
-		if (file.isVirtual()) {
+		if (!file.isLocal()) {
 			onVirtualFileChange(file, change);
 			return;
 		}
@@ -131,16 +169,19 @@ namespace oic {
 
 	void LocalFileSystem::initFile(FileInfo &file) {
 
-		if (file.isVirtual())
+		if (!file.isLocal())
 			return;
 
 		struct stat st;
 		stat(file.path.c_str(), &st);
 
 		file.modificationTime = st.st_mtime;
-		file.access = FileAccess::READ_WRITE;
+
+		if(file.id != 0)
+			file.access = get(file.parent, file.isLocal()).access;
+
 		file.isFolder = !S_ISREG(st.st_mode);
-		file.fileSize = file.isFolder ? 0 : st.st_size;
+		file.fileSize = st.st_size * usz(!file.isFolder);
 
 	}
 

@@ -17,7 +17,7 @@ namespace oic {
 
 	WFileSystem::WFileSystem(): LocalFileSystem(getWorkingDirectory()) {
 		initFiles();
-		resetLut();
+		initLut();
 		initFileWatcher();
 	}
 
@@ -96,14 +96,14 @@ namespace oic {
 						if (!fs->exists(path))
 							System::log()->fatal(errors::fs::invalid);
 
-						fs->notifyFileChange(path, FileChange::REM, false, {});
+						fs->rem(path);
 						break;
 
 					case FILE_ACTION_ADDED:
 
 						stat(path.c_str(), &st);
 
-						fs->notifyFileChange(path, FileChange::ADD, !S_ISREG(st.st_mode), {});
+						fs->add(path, !S_ISREG(st.st_mode));
 						break;
 
 					case FILE_ACTION_MODIFIED:
@@ -111,7 +111,7 @@ namespace oic {
 						if (!fs->exists(path))
 							System::log()->fatal(errors::fs::invalid);
 
-						fs->notifyFileChange(path, FileChange::MOD, false, {});
+						fs->upd(path);
 						break;
 
 					case FILE_ACTION_RENAMED_OLD_NAME:
@@ -123,9 +123,7 @@ namespace oic {
 
 						newPath = getPath(fni);
 
-						stat(newPath.c_str(), &st);
-
-						fs->notifyFileChange(path, FileChange::MOV, false, newPath);
+						fs->mov(path, newPath);
 						break;
 
 					default:
@@ -177,24 +175,26 @@ namespace oic {
 
 		} while (FindNextFileA(file, &data));
 
+		FindClose(file);
+
 		//Init all directories
 
 		FileInfo *p = &get(parent, true);
-		FileHandle folderHint = p->folderHint = localSize();
+		FileHandle folderHint = p->folderHint = size(true);
 
 		for (String &dir : directories) {
 
 			FileInfo subdir = {
 				p->path + "/" + dir, dir,
 				0, 0, nullptr, 0,
-				p->id, localSize(),
+				p->id, size(true),
 				0, 0, 0,
-				FileAccess::READ_WRITE,
+				p->access,
 				true
 			};
 
 			initFile(subdir);
-			addLocal(subdir);
+			this->files(true).push_back(subdir);
 
 			p = &get(parent, true);
 
@@ -202,28 +202,28 @@ namespace oic {
 
 		//Init all files
 
-		p->fileHint = localSize();
+		p->fileHint = size(true);
 
 		for (String &fil : files) {
 
 			FileInfo subfil = {
 				p->path + "/" + fil, fil,
 				0, 0, nullptr, 0,
-				p->id, localSize(),
+				p->id, size(true),
 				0, 0, 0,
-				FileAccess::READ_WRITE,
+				p->access,
 				false
 			};
 
 			initFile(subfil);
-			addLocal(subfil);
+			this->files(true).push_back(subfil);
 
 			p = &get(parent, true);
 		}
 
 		//Recursive
 
-		p->fileEnd = localSize();
+		p->fileEnd = size(true);
 
 		FileHandle i = folderHint;
 

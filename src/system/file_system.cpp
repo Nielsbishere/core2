@@ -6,40 +6,45 @@
 
 namespace oic {
 
-	FileHandle FileInfo::getFolders() const { return fileHint - folderHint; }
-	FileHandle FileInfo::getFiles() const { return fileEnd - fileHint; }
-	FileHandle FileInfo::getFileObjects() const { return fileEnd - folderHint; }
-	bool FileInfo::isVirtual() const { return path[0] == '~'; }
+	static constexpr c8 vroot[] = "~", lroot[] = ".";
+
+	FileInfo::SizeType FileInfo::getFolders() const { return fileHint - folderHint; }
+	FileInfo::SizeType FileInfo::getFiles() const { return fileEnd - fileHint; }
+	FileInfo::SizeType FileInfo::getFileObjects() const { return fileEnd - folderHint; }
+	bool FileInfo::isLocal() const { return path[0] == lroot[0]; }
 	bool FileInfo::hasData() const { return fileSize != 0; }
 
     bool FileInfo::hasAccess(FileAccess flags) const {
-        return (u8(access) & u8(flags)) == u8(flags);
+		return hasAccess(access, flags);
     }
 
-	FileSystem::FileSystem(bool allowLocalFiles): allowLocalFiles(allowLocalFiles), virtualFileLut { { "~", 0 } } {
-	
-		if (allowLocalFiles) {
-			localFileLut = { { ".", 0 } };
-			localFiles = {
+	bool FileInfo::hasAccess(FileAccess access, FileAccess flags) {
+		return (u8(access) & u8(flags)) == u8(flags);
+	}
+
+	FileSystem::FileSystem(const Array<FileAccess, 2> &fileAccess): 
+		fileAccess(fileAccess),
+		virtualFileLut { { vroot, 0 } },
+		virtualFiles {
+			{
 				FileInfo{
-					".", ".",
+					vroot, vroot,
 					0, 0, nullptr, 0, 0, 0, 0, 0, 0,
-					FileAccess::READ_WRITE,
+					fileAccess[false],
 					true
 				}
-			};
-		}
-
-		virtualFiles = {
+			}
+		},
+		localFileLut{ { lroot, 0 } },
+		localFiles{
 			FileInfo{
-				"~", "~",
+				lroot, lroot,
 				0, 0, nullptr, 0, 0, 0, 0, 0, 0,
-				FileAccess::READ_WRITE,
+				fileAccess[true],
 				true
 			}
-		};
-
-	}
+		}
+	{ }
 
 	//TODO: This can be "simplified" by a custom List class
 	template<typename T>
@@ -66,7 +71,7 @@ namespace oic {
 	}
 
     void FileSystem::addFileChangeCallback(FileChangeCallback callback) {
-		addUnique(callbacks, callback);
+		oic::addUnique(callbacks, callback);
     }
 
     void FileSystem::removeFileChangeCallback(FileChangeCallback callback) {
@@ -101,6 +106,7 @@ namespace oic {
 				prev = it;
 				++prev;
 				++i;
+
 			} else if (it == last) {                                                 //Add last parameter
 				splits.push_back(String(prev, end));
 				total += end - prev;
@@ -149,7 +155,7 @@ namespace oic {
         if(info.path == "" || !info.hasAccess(FileAccess::READ))
             return false;
 
-        auto &arr = info.isVirtual() ? virtualFiles : localFiles;
+        auto &arr = files(info.isLocal());
 
         for(usz i = info.folderHint, end = info.fileEnd; i != end; ++i)
             callback(this, arr[i]);
@@ -168,7 +174,7 @@ namespace oic {
 		if (!resolvePath(path, apath))
 			System::log()->fatal(errors::fs::invalid);
 
-		if (apath[0] == '.' && allowLocalFiles) {
+		if (apath[0] == '.') {
 
 			auto ou = localFileLut.find(apath);
 
@@ -177,8 +183,6 @@ namespace oic {
 
 			return localFiles[ou->second];
 		}
-		else if(apath[0] != '.')
-			System::log()->fatal(errors::fs::notSupported);
 
 		auto ou = virtualFileLut.find(apath);
 
@@ -201,29 +205,22 @@ namespace oic {
 
 		if (apath[0] == '~')
 			return virtualFileLut.find(apath) != virtualFileLut.end();
-		else if (allowLocalFiles)
-			return localFileLut.find(apath) != localFileLut.end();
 
-		return false;
+		return localFileLut.find(apath) != localFileLut.end();
 	}
 
-	void FileSystem::resetLut() {
-
-		virtualFileLut.clear();
+	void FileSystem::initLut() {
 
 		FileInfo::SizeType i{};
+		virtualFileLut.clear();
 
 		for (const FileInfo &info : virtualFiles) {
 			virtualFileLut[info.path] = i;
 			++i;
 		}
 
-		if (!allowLocalFiles)
-			return;
-
-		localFileLut.clear();
-
 		i = 0;
+		localFileLut.clear();
 
 		for (const FileInfo &info : localFiles) {
 			localFileLut[info.path] = i;
@@ -232,29 +229,43 @@ namespace oic {
 
 	}
 
-	void FileSystem::notifyFileRemove(FileHandle handle, bool isLocal) {
+	bool FileSystem::rem(const String &path) {
+		FileInfo &inf = get(path);
+		return remove(inf.id, inf.isLocal());
+	}
 
-		if (handle == 0)
+	bool FileSystem::remove(FileHandle handle, bool isLocal) {
+
+		if (handle == 0) {
 			System::log()->fatal(errors::fs::illegal);
+			return false;
+		}
 
-		FileInfo *inf = &get(handle, isLocal);
-		
+		FileInfo &inf = get(handle, isLocal);
+
+		if (!inf.hasAccess(FileAccess::WRITE)) {
+			System::log()->fatal(errors::fs::notPermitted);
+			return false;
+		}
+
 		//Notify folders (clean up their children)
 
-		if (inf->fileHint != 0) {
+		FileInfo::SizeType fileObjects;
 
-			FileHandle folderEnd = inf->fileHint - 1;
-			FileHandle folderStart = inf->folderHint;
-			FileInfo::SizeType folders = inf->getFolders();
+		if ((fileObjects = inf.getFileObjects()) != 0) {
 
-			FileHandle fileEnd = inf->fileEnd - 1 - folders;	//- folders since those will be removed
-			FileHandle fileStart = inf->fileHint - folders;		//- folders since those will be removed
+			FileHandle folderEnd = inf.fileHint - 1;
+			FileHandle folderStart = inf.folderHint;
+			FileInfo::SizeType folders = inf.getFolders();
+
+			FileHandle fileEnd = inf.fileEnd - 1 - folders;	//- folders since those will be removed
+			FileHandle fileStart = inf.fileHint - folders;		//- folders since those will be removed
 
 			for (FileHandle i = folderEnd; i >= folderStart; --i)
-				notifyFileRemove(i, isLocal);
+				remove(i, isLocal);
 
 			for (FileHandle i = fileEnd; i >= fileStart; --i)
-				notifyFileRemove(i, isLocal);
+				remove(i, isLocal);
 		}
 
 		//Pass remove events
@@ -268,40 +279,66 @@ namespace oic {
 
 		//Remove from parent
 
+		List<FileInfo> &arr = files(isLocal);
+		auto &map = isLocal ? localFileLut : virtualFileLut;
+
 		bool isFolder = fs.isFolder;
-		FileInfo &parent = isLocal ? localFiles[fs.parent] : virtualFiles[fs.parent];
+		FileInfo &parent = arr[fs.parent];
 
 		if (isFolder)
 			--parent.fileHint;
 
 		--parent.fileEnd;
 
-		//TODO: Update handles after and the folders before
-
 		//Remove from system
 
-		if (!isLocal) {
-			virtualFileLut.erase(virtualFiles[handle].path);
-			virtualFiles.erase(virtualFiles.begin() + handle);
-		} else if (allowLocalFiles) {
-			localFileLut.erase(localFiles[handle].path);
-			localFiles.erase(localFiles.begin() + handle);
-		} else
-			System::log()->fatal(errors::fs::notSupported);
+		map.erase(arr[handle].path);
+		arr.erase(arr.begin() + handle);
 
+		//TODO: Doesn't work :(
+		//delete working/tools
+		//delete working/out
+		//delete working/oibaker
+		//working/oibaker points to working/oibaker/src/main.cpp instead of working/oibaker/CMakeLists.txt
+
+		for (FileHandle i = handle, j = FileHandle(arr.size()); i < j; ++i) {
+
+			FileInfo &f = arr[i];
+			FileHandle shouldDecrement = f.folderHint != 0;
+
+			map[f.path] = --f.id;
+
+			f.parent -= FileHandle(f.parent > handle);
+			f.folderHint -= shouldDecrement;
+			f.fileHint -= shouldDecrement;
+			f.fileEnd -= shouldDecrement;
+		}
+
+		return true;
 	}
 
-	void FileSystem::notifyFileAdd(const String &path, bool isLocal, bool isDirectory) {
+	bool FileSystem::add(const String &path, bool isFolder) {
 
-		if (isLocal && !allowLocalFiles)
-			System::log()->fatal(errors::fs::notSupported);
+		String apath;
+
+		if (!resolvePath(path, apath)) {
+			System::log()->fatal(errors::fs::nonExistent);
+			return false;
+		}
+
+		if (exists(apath)) {
+			System::log()->fatal(errors::fs::exists);
+			return false;
+		}
+
+		bool isLocal = apath[0] == '.';
 
 		List<String> parts;
 		obtainPath(path, parts);
 
 		//Go through subfiles and find the parent
 
-		auto &arr = isLocal ? localFiles : virtualFiles;
+		auto &arr = files(isLocal);
 		FileInfo *parent = arr.data();
 
 		for (usz i = 1, j = parts.size() - 1; j != usz_MAX && i < j; ++i) {
@@ -323,18 +360,27 @@ namespace oic {
 
 			if (!found) {
 				String dpath = parent->path + "/" + part;
-				notifyFileAdd(dpath, isLocal, true);
+
+				if (!add(dpath, true)) {
+					System::log()->fatal(errors::fs::invalid);
+					return false;
+				}
+
 				parent = &get(dpath);
 			}
 
 		}
 
+		if (!parent->hasAccess(FileAccess::WRITE)) {
+			System::log()->fatal(errors::fs::notPermitted);
+			return false;
+		}
+
 		//Create file or directory
 
 		String &part = *(parts.end() - 1);
-		String apath = parent->path + "/" + part;
 
-		FileHandle handle = isDirectory ? parent->fileHint : parent->fileEnd;
+		FileHandle handle = isFolder ? parent->fileHint : parent->fileEnd;
 
 		//The file doesn't have folders/files yet
 		if (handle == 0)
@@ -344,7 +390,7 @@ namespace oic {
 
 		bool setParentHint = false;
 
-		if (parent->getFolders() == 0 && isDirectory) {
+		if (parent->getFolders() == 0 && isFolder) {			//Setup folder hint
 
 			auto files = parent->getFiles();
 
@@ -356,7 +402,7 @@ namespace oic {
 			parent->folderHint = handle;
 			parent->fileEnd = handle + files + 1;
 
-		} else if (parent->getFiles() == 0 && !isDirectory) {
+		} else if (parent->getFiles() == 0 && !isFolder) {		//Setup file hint
 
 			FileHandle folders = parent->getFolders();
 
@@ -368,16 +414,18 @@ namespace oic {
 			parent->fileHint = ou + folders;
 			parent->fileEnd = ou + folders + 1;
 
-		} else {
-			parent->fileHint += FileHandle(isDirectory);
+		} else {												//Increase hints
+			parent->fileHint += FileHandle(isFolder);
 			++parent->fileEnd;
 		}
 
 		//Update all file handles
 
+		auto &lut = isLocal ? localFileLut : virtualFileLut;
+
 		FileHandle pid = parent->id;	//All ids before handle stay the same, so parent->id and parent->parent is always valid
 
-		for (FileHandle i = 0, j = isLocal ? localSize() : virtualSize(); i < j; ++i) {
+		for (FileHandle i = 0, j = size(isLocal); i < j; ++i) {
 
 			FileInfo &f = arr[i];
 
@@ -388,20 +436,23 @@ namespace oic {
 			f.folderHint += shouldIncrement;
 			f.fileHint += shouldIncrement;
 			f.fileEnd += shouldIncrement;
-			f.id += FileHandle(f.id >= handle);
+
+			if (f.id >= handle)
+				lut[f.path] = ++f.id;
+
 			f.parent += FileHandle(f.parent >= handle);
 		}
 
 		//Obtain where the folder's children should be located
 
-		FileHandle hint = isDirectory ? parent->fileEnd : 0;
+		FileHandle hint = isFolder ? parent->fileEnd : 0;
 
-		if (isDirectory && parent->getFolders() > 1 && !setParentHint)
+		if (isFolder && parent->getFolders() > 1 && !setParentHint)
 			hint = arr[parent->fileHint - 2].fileEnd;
 
 		//The folder doesn't have a place to go
 
-		if (hint == 0 && isDirectory)
+		if (hint == 0 && isFolder)
 			System::log()->fatal(errors::fs::illegal);
 
 		//Add to system
@@ -410,10 +461,8 @@ namespace oic {
 			apath, part,
 			0, 0, nullptr, 0,
 			parent->id, handle, hint, hint, hint,
-			parent->access, isDirectory
+			parent->access, isFolder
 		};
-
-		auto &lut = isLocal ? localFileLut : virtualFileLut;
 
 		lut[apath] = handle;
 		arr.insert(arr.begin() + handle, info);
@@ -426,117 +475,60 @@ namespace oic {
 		for (FileChangeCallback cb : callbacks)
 			cb(this, fi, FileChange::ADD);
 
+		return true;
 	}
 
-	void FileSystem::notifyFileChange(const String &path, FileChange change, bool isFolder, const String &newPath) {
+	bool FileSystem::upd(const String &path) {
 
-		String apath;
-
-		if (!resolvePath(path, apath)) {
-			System::log()->fatal(errors::fs::invalid);
-			return;
-		}
-
-		bool isLocal = apath[0] == '.';
-
-		if (change == FileChange::MOV) {
-
-			String npath;
-
-			if (!resolvePath(newPath, npath)) {
-				System::log()->fatal(errors::fs::invalid);
-				return;
-			}
-
-			if (npath.substr(0, npath.find_last_of('/')) != apath.substr(0, apath.find_last_of('/'))) {
-				System::log()->fatal(errors::fs::notSupported);
-				return;
-			}
-
-			FileInfo &info = get(apath);
-			rename(info, npath, true);
-
-			if(info.isFolder)
-				foreachFile(info, [] (FileSystem *f, FileInfo &fi) -> void {
-
-					bool local = !fi.isVirtual();
-					f->rename(fi, f->get(fi.parent, local).path + "/" + fi.name, false);
-
-				}, true);
-
-			apath = std::move(npath);
-
-		}
-
-		//Create file
-
-		if (!exists(apath)) {
-
-			if(change != FileChange::ADD) {
-				System::log()->fatal(errors::fs::invalid);
-				return;
-			}
-
-			notifyFileAdd(apath, isLocal, isFolder);
-			return;
-		}
-
-		FileInfo &f = get(apath);
-		FileHandle loc = f.id;
-
-		//Remove the file and children
-		//Update the handles of everyone
-
-		if (change == FileChange::REM) {
-			notifyFileRemove(loc, isLocal);
-			return;
-		}
-
-		if (change == FileChange::ADD) {
-			System::log()->fatal(errors::fs::invalid);
-			return;
-		}
-
-		//Update file
-
-		auto &arr = isLocal ? localFiles : virtualFiles;
-
-		FileInfo &file = arr[loc];
-		onFileChange(file, change);
+		FileInfo &file = get(path);
+		onFileChange(file, FileChange::UPD);
 
 		for (FileChangeCallback cb : callbacks)
-			cb(this, file, change);
+			cb(this, file, FileChange::UPD);
 
+		return true;
 	}
 
-	FileInfo::SizeType FileSystem::localSize() const {
-		return FileInfo::SizeType(localFiles.size());
+	bool FileSystem::mov(const String &path, const String &npath) {
+
+		if (path.substr(0, path.find_last_of('/')) != npath.substr(0, npath.find_last_of('/'))) {
+			System::log()->fatal(errors::fs::notSupported);
+			return false;
+		}
+
+		FileInfo &info = get(path);
+		rename(info, npath, true);
+
+		if (info.isFolder)
+			foreachFile(info, [] (FileSystem *f, FileInfo &fi) -> void {
+
+				f->rename(fi, f->get(fi.parent, fi.isLocal()).path + "/" + fi.name, false);
+
+			}, true);
+
+		onFileChange(info, FileChange::MOV);
+
+		for (FileChangeCallback cb : callbacks)
+			cb(this, info, FileChange::MOV);
+
+		return true;
 	}
 
-	FileInfo::SizeType FileSystem::virtualSize() const {
-		return FileInfo::SizeType(virtualFiles.size());
+	FileInfo::SizeType FileSystem::size(bool isLocal) const {
+		return FileInfo::SizeType(localFiles.size() * isLocal + virtualFiles.size() * (!isLocal));
 	}
 
-	const List<FileInfo> &FileSystem::virtualFile() const {
-		return virtualFiles;
+	const List<FileInfo> &FileSystem::getFiles(bool isLocal) const {
+		return isLocal ? localFiles : virtualFiles;
 	}
 
-	const List<FileInfo> &FileSystem::localFile() const {
-		return localFiles;
-	}
-	
-	void FileSystem::addLocal(FileInfo &file) {
-
-		if (!allowLocalFiles)
-			return;
-
-		localFiles.push_back(file);
-		localFileLut[file.path] = file.id;
+	List<FileInfo> &FileSystem::files(bool isLocal) {
+		return (List<FileInfo>&) getFiles(isLocal);
 	}
 
 	void FileSystem::rename(FileInfo &info, const String &path, bool setName) {
 
-		auto &map = info.isVirtual() ? virtualFileLut : localFileLut;
+		auto &map = info.isLocal() ? localFileLut : virtualFileLut;
 
 		map.erase(info.path);
 
@@ -550,21 +542,14 @@ namespace oic {
 
 	const FileInfo &FileSystem::get(FileHandle id, bool isLocal) const {
 
-		if (isLocal && !allowLocalFiles)
-			System::log()->fatal(errors::fs::notSupported);
-
-		if ((isLocal && id >= localSize()) || (!isLocal && id >= virtualSize()))
+		if (id >= size(isLocal))
 			System::log()->fatal(errors::fs::nonExistent);
 
-		return isLocal ? localFiles[id] : virtualFiles[id];
+		return getFiles(isLocal)[id];
 	}
 
 	FileInfo &FileSystem::get(FileHandle id, bool isLocal) {
 		return (FileInfo&)((const FileSystem*)this)->get(id, isLocal);
-	}
-
-	void FileSystem::add(const String &path, bool isFolder) {
-		notifyFileChange(path, FileChange::ADD, isFolder, {});
 	}
 
 }

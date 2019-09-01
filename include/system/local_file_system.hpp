@@ -30,7 +30,7 @@ namespace oic {
 		void onFileChange(FileInfo &path, FileChange change) final override;
 
 		//!Create a folder in the physical directory
-		void mkdir(FileInfo &file) final override;
+		bool make(FileInfo &file) final override;
 
 		//!Setup the data of the file
 		//requires path and file location variables to be set
