@@ -8,7 +8,7 @@ namespace oic {
 	public:
 
 		//Create randomly seeded random
-		Random(): rd(), g(rd()) { g.discard(700_K); }
+		Random(): rd(), g((u64(rd()) << 32) | rd()) { g.discard(700_K); }
 
 		//Create seeded random
 		Random(u64 seed): g(seed) {}

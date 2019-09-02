@@ -2,6 +2,7 @@
 #include "system/system.hpp"
 #include "error/ocore.hpp"
 #include <exception>
+#include <ctime>
 
 //Unfortunately before Windows 10 it doesn't support printing colors into console using printf
 //We also use Windows dependent stack tracing and std::exception

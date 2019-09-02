@@ -20,7 +20,7 @@ namespace oic {
 
 		const WindowsSystem WindowsSystem::windowsSystem = WindowsSystem();
 
-		void WindowsSystem::sleep(u64 time) {
+		void WindowsSystem::sleep(ns time) {
 			LARGE_INTEGER interval;
 			interval.QuadPart = -i64(time / 100);
 			ntDelayExecution(false, &interval);

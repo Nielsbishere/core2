@@ -1,5 +1,4 @@
 #pragma once
-#include <mutex>
 #include "types/types.hpp"
 
 namespace oic {
@@ -26,23 +25,17 @@ namespace oic {
 		//@note The System class handles cleanup of the Log* passed
 		static void setCustomLogCallback(Log *log);
 
-		//!Ready the system for the current thread
-		static void begin();
-
-		//!Ready the system for other threads
-		static void end();
-
 		//!Attempt to wait a number of ns
 		//The accuracy is dependent on the platform, but it is specified in ns
 		//Currently expected time step is approx. 100ns.
-		static void wait(u64 time);
+		static void wait(ns time);
 
 	protected:
 
 		System(LocalFileSystem *files_, Allocator *allocator_, ViewportManager *viewportManager_, Log *nativeLog);
 		virtual ~System();
 
-		virtual void sleep(u64 time) = 0;
+		virtual void sleep(ns time) = 0;
 
 		System(const System &) = delete;
 		System(System &&) = delete;
@@ -55,8 +48,6 @@ namespace oic {
 		Allocator *allocator_{};
 		ViewportManager *viewportManager_{};
 		Log *log_{}, *nativeLog{};
-
-		std::mutex mutex;
 
 		//System class
 

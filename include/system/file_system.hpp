@@ -1,4 +1,5 @@
 #pragma once
+#include <mutex>
 #include "types/types.hpp"
 
 namespace oic {
@@ -253,6 +254,9 @@ namespace oic {
 		FileInfo::SizeType size(bool isLocal) const;
 		const List<FileInfo> &getFiles(bool isLocal) const;
 
+		void begin();		//Wait for the file system to be available from updates
+		void end();			//Release the file system for future updates
+
     protected:
 
 		//!Creates a local file
@@ -295,6 +299,8 @@ namespace oic {
 
         //!List of all file change callbacks
         List<FileChangeCallback> callbacks;
+
+		std::mutex lock;
 
     };
 

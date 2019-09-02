@@ -1,7 +1,8 @@
 #pragma once
 #include <stdint.h>
 #include <limits>
-#include <ctime>
+
+//Types
 
 using i8 = int8_t;
 using u8 = uint8_t;
@@ -24,6 +25,8 @@ using c32 = char32_t;
 
 using usz = size_t;
 
+//Casts
+
 constexpr u8 operator ""_u8(unsigned long long test) { return (u8)test; }
 constexpr i8 operator ""_i8(unsigned long long test) { return (i8)test; }
 
@@ -41,24 +44,45 @@ constexpr usz operator ""_usz(unsigned long long test) { return (usz)test; }
 constexpr f32 operator ""_f32(long double test) { return (f32)test; }
 constexpr f64 operator ""_f64(long double test) { return (f64)test; }
 
+//Bytes & bits
+
 constexpr usz KiB = 1024;
 constexpr usz MiB = KiB * KiB;
 constexpr usz GiB = KiB * MiB;
 constexpr usz TiB = KiB * GiB;
 
+constexpr usz Kib = 128;
+constexpr usz Mib = Kib * Kib;
+constexpr usz Gib = Kib * Mib;
+constexpr usz Tib = Kib * Gib;
+
 constexpr usz operator ""_KiB(unsigned long long test) { return (usz)test * KiB; }
 constexpr usz operator ""_MiB(unsigned long long test) { return (usz)test * MiB; }
 constexpr usz operator ""_GiB(unsigned long long test) { return (usz)test * GiB; }
 constexpr usz operator ""_TiB(unsigned long long test) { return (usz)test * TiB; }
+
+constexpr usz operator ""_Kib(unsigned long long test) { return (usz)test * Kib; }
+constexpr usz operator ""_Mib(unsigned long long test) { return (usz)test * Mib; }
+constexpr usz operator ""_Gib(unsigned long long test) { return (usz)test * Gib; }
+constexpr usz operator ""_Tib(unsigned long long test) { return (usz)test * Tib; }
+
+//Base10 constants
+
 constexpr usz operator ""_K(unsigned long long test) { return (usz)test * 1'000; }
 constexpr usz operator ""_M(unsigned long long test) { return (usz)test * 1'000'000; }
 constexpr usz operator ""_B(unsigned long long test) { return (usz)test * 1'000'000'000; }
+
+//Time
+
 constexpr u64 operator ""_d(unsigned long long test) { return test * 8'640'000'000'000; }	//days to ns
 constexpr u64 operator ""_h(unsigned long long test) { return test * 360'000'000'000; }		//hours to ns
 constexpr u64 operator ""_m(unsigned long long test) { return test * 60'000'000'000; }		//mins to ns
 constexpr u64 operator ""_s(unsigned long long test) { return test * 1'000'000'000; }		//seconds to ns
 constexpr u64 operator ""_ms(unsigned long long test) { return test * 1'000'000; }			//mili seconds to ns
 constexpr u64 operator ""_mus(unsigned long long test) { return test * 1'000; }				//micro seconds to ns
+using ns = u64;
+
+//Limits
 
 constexpr u8 u8_MAX = 0xFF_u8;
 constexpr u8 u8_MIN = 0_u8;
@@ -86,6 +110,8 @@ constexpr f64 f64_MAX = std::numeric_limits<f64>::max();
 constexpr usz usz_MIN = 0;
 constexpr usz usz_MAX = usz(sizeof(usz) == 8 ? u64_MAX : u32_MAX);		//if usz is u32, will cut from u64_MAX to u32_MAX
 
+//GPU boolean
+
 class gbool {
 
 public:
@@ -100,6 +126,8 @@ private:
 	u32 val;
 
 };
+
+//Handling proper pointer destruction (prefer over delete)
 
 template<typename T>
 static inline void destroy(T *&ptr) {

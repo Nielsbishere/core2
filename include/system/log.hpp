@@ -22,20 +22,23 @@ namespace oic {
 		Log() = default;
 		virtual ~Log() = default;
 
+		//TODO: Add ability to print with specs; e.g. no next line, no date, etc.
+
 		virtual void debug(const String &str) = 0;
 		virtual void performance(const String &str) = 0;
 		virtual void warn(const String &str) = 0;
 		virtual void error(const String &str) = 0;
 		virtual void fatal(const String &str) = 0;
 
-		void println(const String &str, LogLevel level);
-		void println(const String &str);
-
 		template<LogLevel level = LogLevel::DEBUG, typename ...args>
 		inline void println(const args &...arg);
 
 		template<typename ...args>
 		static inline String concat(const args &...arg);
+
+		//Convert an integer to string
+		template<usz base = 10, typename T, typename = std::enable_if_t<std::is_integral_v<T>>>
+		static inline String num(T val, usz minSize = 0);
 
 		//!Used to print the current stacktrace
 		//@param[in] skip How many function calls to skip (0 by default)
@@ -73,6 +76,43 @@ namespace oic {
 			error(str);
 		else
 			fatal(str);
+	}
+	
+	template<usz base, typename T, typename>
+	static inline String Log::num(T val, usz minSize) {
+
+		static_assert(base <= 64, "Only supported up to base64");
+
+		static constexpr c8 chars[65] = "0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz#*";
+
+		String str;
+
+		bool sign = false;
+
+		if constexpr(std::is_signed_v<T>)
+			if (val < 0) {
+				sign = true;
+				val = -val;
+			}
+
+		if (val == 0)
+			str = "0";
+		else {
+
+			str.reserve(minSize == 0 ? 16 : minSize);
+
+			do {
+				const T remainder = val % base;
+				str.insert(str.begin(), chars[remainder]);
+				val /= base;
+
+			} while (val != 0);
+		}
+
+		if (str.size() >= minSize)
+			return (sign ? "-" : "") + str;
+
+		return (sign ? "-" : "") + String(minSize - str.size(), '0') + str;
 	}
 
 

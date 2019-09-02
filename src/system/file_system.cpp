@@ -526,6 +526,9 @@ namespace oic {
 		return (List<FileInfo>&) getFiles(isLocal);
 	}
 
+	void FileSystem::begin() { lock.lock(); }
+	void FileSystem::end() { lock.unlock(); }
+
 	void FileSystem::rename(FileInfo &info, const String &path, bool setName) {
 
 		auto &map = info.isLocal() ? localFileLut : virtualFileLut;

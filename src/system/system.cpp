@@ -33,15 +33,7 @@ namespace oic {
 		system->log_ = log ? log : system->nativeLog;
 	}
 
-	void System::begin() {
-		system->mutex.lock();
-	}
-
-	void System::end() {
-		system->mutex.unlock();
-	}
-
-	void System::wait(u64 time) {
+	void System::wait(ns time) {
 		system->sleep(time);
 	}
 

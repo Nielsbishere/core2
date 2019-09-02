@@ -96,7 +96,7 @@ namespace oic {
 			FILE_NOTIFY_INFORMATION *fni = (FILE_NOTIFY_INFORMATION*)buffer;
 			struct stat st;
 
-			System::begin();
+			System::files()->begin();
 
 			do {
 
@@ -149,7 +149,7 @@ namespace oic {
 
 			} while (fni);
 
-			System::end();
+			System::files()->end();
 
 		}
 

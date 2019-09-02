@@ -15,7 +15,7 @@ namespace oic::windows {
 		WindowsSystem();
 		~WindowsSystem() = default;
 
-		void sleep(u64 time) final override;
+		void sleep(ns time) final override;
 
 		WFileSystem wfileSystem;
 		WAllocator wallocator;
