@@ -1,4 +1,5 @@
 #include "system/windows_viewport_manager.hpp"
+#include "system/viewport_interface.hpp"
 #include "system/system.hpp"
 #include "system/log.hpp"
 #include <comdef.h>
@@ -79,7 +80,6 @@ namespace oic::windows {
 		}
 
 		SetWindowLongPtrA(hwnd, 0, (LONG_PTR)this);
-		ShowWindow(hwnd, SW_SHOW);
 		UpdateWindow(hwnd);
 	}
 
@@ -94,6 +94,13 @@ namespace oic::windows {
 
 		WWindow *w = new WWindow(data->info, instance);
 		hwnd.push_back(w);
+
+		if (w->info->vinterface) {
+			w->info->vinterface->init(w->info);
+			w->info->vinterface->resize(w->info->size);
+		}
+
+		ShowWindow(w->hwnd, SW_SHOW);
 
 		w->running = data->ready = true;
 		data->cv.notify_one();
@@ -150,6 +157,10 @@ namespace oic::windows {
 		hwnd.erase(hwnd.begin() + info->id);
 	}
 
+	WWindow *WViewportManager::get(ViewportInfo *info) {
+		return hwnd[info->id];
+	}
+
 	WWindow::~WWindow() {
 		if (hwnd) {
 			running = false;
@@ -163,52 +174,14 @@ namespace oic::windows {
 		switch (message) {
 
 			case WM_CREATE:
-				srand(u32(time(0)));
 				break;
 
 			case WM_PAINT:
 
-				{
+				if(auto *ptr = (WWindow*) GetWindowLongPtrA(hwnd, 0))
+					if(ptr->running)
+						ptr->info->vinterface->render();
 
-					//TODO: This should be done by a callback!
-
-					u32 *pixelBuffer = (u32*)0x20000;
-					constexpr usz w = 160, h = 144;
-
-					RECT r;
-					GetClientRect(hwnd, &r);
-
-					PAINTSTRUCT paintStruct;
-					HDC dc = BeginPaint(hwnd, &paintStruct);
-
-					List<u32> pixels(r.bottom * r.right);
-
-					for(usz j = 0; j < r.bottom; ++j)
-						for (usz i = 0; i < r.right; ++i) {
-
-							usz x = usz(f64(i) / (r.right - 1) * (w - 1));
-							usz y = usz(f64(j) / (r.bottom - 1) * (h - 1));
-
-							pixels[j * r.right + i] = pixelBuffer[x + y * w];
-						}
-
-					BITMAPINFOHEADER bi;
-					ZeroMemory(&bi, sizeof(bi));
-					bi.biSize = sizeof(bi);
-					bi.biWidth = r.right;
-					bi.biHeight = r.bottom;
-					bi.biPlanes = 1;
-					bi.biBitCount = sizeof(pixels[0]) * 8;
-					bi.biCompression = 0;  //RGB
-					bi.biSizeImage = DWORD(pixels.size() * sizeof(pixels[0]));
-
-					SetDIBitsToDevice(
-						dc, 0, 0, r.right, r.bottom, 0, 0, 0, r.bottom, 
-						pixels.data(), (LPBITMAPINFO)&bi, DIB_RGB_COLORS
-					);
-
-					EndPaint(hwnd, &paintStruct);
-				}
 				return NULL;
 
 			case WM_CLOSE:
@@ -232,6 +205,7 @@ namespace oic::windows {
 					GetClientRect(hwnd, &r);
 
 					ptr->info->size = { u32(r.right - r.left), u32(r.bottom - r.top) };
+					ptr->info->vinterface->resize(ptr->info->size);
 				}
 				break;
 

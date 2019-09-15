@@ -11,8 +11,6 @@ set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/bin)
 
 set(CMAKE_SUPPRESS_REGENERATION true)
 
-include_directories(include)
-
 file(GLOB_RECURSE ocoreHpp "include/*.hpp")
 file(GLOB_RECURSE ocoreCpp "src/*.cpp")
 
@@ -26,6 +24,9 @@ endif()
 
 file(GLOB_RECURSE platformHpp "platform/${platform}/include/*.hpp")
 file(GLOB_RECURSE platformCpp "platform/${platform}/src/*.cpp")
+
+include_directories(include)
+include_directories(platform/${platform}/include)
 
 add_library(
 	ocore

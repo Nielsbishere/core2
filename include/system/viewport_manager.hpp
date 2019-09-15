@@ -4,6 +4,8 @@
 
 namespace oic {
 
+	class ViewportInterface;
+
 	struct ViewportInfo {
 
 		enum Hint : u8 {
@@ -29,14 +31,14 @@ namespace oic {
 		//These are only HINTS, the underlying implementation can decide if its appropriate
 		Hint hint;
 		
-		//User data
-		void *userData;
+		//Callback for viewport functions
+		ViewportInterface *vinterface;
 
 		//Used for when communicating data to sync
 		std::mutex fence;
 
-		ViewportInfo(const String &name, Vec2i offset, Vec2u size, u32 layer, Hint hint = NONE, void *userData = nullptr):
-			name(name), offset(offset), size(size), layer(layer), id(), hint(hint), userData(userData) {}
+		ViewportInfo(const String &name, Vec2i offset, Vec2u size, u32 layer, ViewportInterface *vinterface = nullptr, Hint hint = NONE):
+			name(name), offset(offset), size(size), layer(layer), id(), hint(hint), vinterface(vinterface) {}
 
 		ViewportInfo(ViewportInfo&&) = delete;
 		ViewportInfo &operator=(ViewportInfo&&) = delete;
@@ -66,19 +68,11 @@ namespace oic {
 		ViewportManager &operator=(const ViewportManager&) = delete;
 		ViewportManager &operator=(ViewportManager&&) = delete;
 
-		inline const ViewportInfo *find(const String &name) const { return ((ViewportManager*)this)->find(name); }
-
-		inline const ViewportInfo *operator[](usz i) const {
-			return viewports[i];
-		}
-
-		inline auto find(const ViewportInfo *info) {
-			return std::find(viewports.begin(), viewports.end(), info);
-		}
-
-		inline bool contains(const ViewportInfo *info) {
-			return find(info) != viewports.end();
-		}
+		inline const ViewportInfo *find(const String &name) const;
+		inline const ViewportInfo *operator[](usz i) const;
+		inline auto find(const ViewportInfo *info);
+		inline bool contains(const ViewportInfo *info) const;
+		inline usz size() const;
 
 		bool destroy(const ViewportInfo *info);
 		bool create(const ViewportInfo &info);
@@ -111,5 +105,26 @@ namespace oic {
 		HashMap<String, usz> idMap;
 
 	};
+
+	
+	inline const ViewportInfo *ViewportManager::find(const String &name) const { 
+		return ((ViewportManager*)this)->find(name); 
+	}
+
+	inline const ViewportInfo *ViewportManager::operator[](usz i) const {
+		return viewports[i];
+	}
+
+	inline auto ViewportManager::find(const ViewportInfo *info) {
+		return std::find(viewports.begin(), viewports.end(), info);
+	}
+
+	inline bool ViewportManager::contains(const ViewportInfo *info) const {
+		return std::find(viewports.begin(), viewports.end(), info) != viewports.end();
+	}
+
+	inline usz ViewportManager::size() const { 
+		return viewports.size();
+	}
 
 }

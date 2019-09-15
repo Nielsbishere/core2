@@ -1,4 +1,5 @@
 #include "system/viewport_manager.hpp"
+#include "system/viewport_interface.hpp"
 
 namespace oic {
 
@@ -8,6 +9,9 @@ namespace oic {
 
 		if (it == viewports.end())
 			return false;
+
+		if (info->vinterface)
+			delete info->vinterface;
 
 		for (u32 i = (*it)->id + 1, end = u32(viewports.size()); i < end; ++i) {
 			--viewports[i]->id;
@@ -27,6 +31,9 @@ namespace oic {
 
 		if (it == viewports.end())
 			return false;
+
+		if (info->vinterface)
+			delete info->vinterface;
 
 		for (u32 i = (*it)->id + 1, end = u32(viewports.size()); i < end; ++i) {
 			--viewports[i]->id;
@@ -51,7 +58,7 @@ namespace oic {
 
 		u32 id = u32(lid);
 
-		ViewportInfo *vpi = new ViewportInfo(info.name, info.offset, info.size, info.layer, info.hint, info.userData);
+		ViewportInfo *vpi = new ViewportInfo(info.name, info.offset, info.size, info.layer, info.vinterface, info.hint);
 		viewports.push_back(vpi);
 
 		viewports[id]->id = id;

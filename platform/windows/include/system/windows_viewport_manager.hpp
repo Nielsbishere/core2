@@ -34,8 +34,10 @@ namespace oic::windows {
 		WViewportManager();
 		~WViewportManager();
 
-		virtual void add(ViewportInfo *info) final override;
-		virtual void del(const ViewportInfo *info) final override;
+		void add(ViewportInfo *info) final override;
+		void del(const ViewportInfo *info) final override;
+
+		WWindow *get(ViewportInfo *info);
 
 		struct WViewportThreadData {
 			ViewportInfo *info;
