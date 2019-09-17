@@ -30,8 +30,11 @@ namespace oic {
 		virtual void error(const String &str) = 0;
 		virtual void fatal(const String &str) = 0;
 
-		template<LogLevel level = LogLevel::DEBUG, typename ...args>
+		template<LogLevel level, typename ...args>
 		inline void println(const args &...arg);
+
+		template<typename ...args>
+		inline void println(LogLevel level, const args &...arg);
 
 		template<typename ...args>
 		static inline String concat(const args &...arg);
@@ -73,6 +76,23 @@ namespace oic {
 		else if constexpr (level == LogLevel::WARN)
 			warn(str);
 		else if constexpr (level == LogLevel::ERROR)
+			error(str);
+		else
+			fatal(str);
+	}
+
+	template<typename ...args>
+	inline void Log::println(LogLevel level, const args &...arg) {
+
+		const String str = concat(arg...);
+
+		if (level == LogLevel::DEBUG)
+			debug(str);
+		else if (level == LogLevel::PERFORMANCE)
+			performance(str);
+		else if (level == LogLevel::WARN)
+			warn(str);
+		else if (level == LogLevel::ERROR)
 			error(str);
 		else
 			fatal(str);
