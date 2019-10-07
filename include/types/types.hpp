@@ -177,6 +177,10 @@ using Vec2f = Array<f32, 2>;
 using Vec3f = Array<f32, 3>;
 using Vec4f = Array<f32, 4>;
 
+using Vec2d = Array<f64, 2>;
+using Vec3d = Array<f64, 3>;
+using Vec4d = Array<f64, 4>;
+
 //Generate a signed version of the unsigned integer
 
 template<typename T> struct Signed {};

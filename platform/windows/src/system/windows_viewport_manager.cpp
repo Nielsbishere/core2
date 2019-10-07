@@ -184,30 +184,36 @@ namespace oic::windows {
 
 				return NULL;
 
-			case WM_CLOSE:
-				{
-					auto *ptr = (WWindow*)GetWindowLongPtrA(hwnd, 0);
-					ptr->running = false;
-				}
+			case WM_GETMINMAXINFO: {
+				LPMINMAXINFO lpMMI = (LPMINMAXINFO) lParam;
+				lpMMI->ptMinTrackSize.x = 256;
+				lpMMI->ptMinTrackSize.y = 256;
 				break;
+			}
+
+			case WM_CLOSE: {
+				auto *ptr = (WWindow*)GetWindowLongPtrA(hwnd, 0);
+				ptr->running = false;
+				break;
+			}
 
 			case WM_DESTROY:
 				break;
 
-			case WM_SIZE:
-				{
-					auto *ptr = (WWindow*)GetWindowLongPtrA(hwnd, 0);
+			case WM_SIZE: {
 
-					if (!ptr)
-						break;
+				auto *ptr = (WWindow*)GetWindowLongPtrA(hwnd, 0);
 
-					RECT r;
-					GetClientRect(hwnd, &r);
+				if (!ptr)
+					break;
 
-					ptr->info->size = { u32(r.right - r.left), u32(r.bottom - r.top) };
-					ptr->info->vinterface->resize(ptr->info->size);
-				}
+				RECT r;
+				GetClientRect(hwnd, &r);
+
+				ptr->info->size = { u32(r.right - r.left), u32(r.bottom - r.top) };
+				ptr->info->vinterface->resize(ptr->info->size);
 				break;
+			}
 
 			//TODO: WM_MOVE
 		}
