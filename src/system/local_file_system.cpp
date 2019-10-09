@@ -56,7 +56,7 @@ namespace oic {
 		}
 		
 		FILE *f{};
-		if(fopen_s(&f, file.path.c_str(), "r") != 0 || !f) {
+		if(fopen_s(&f, file.path.c_str(), "rb") != 0 || !f) {
 			System::log()->fatal(errors::fs::nonExistent);
 			return false;
 		}
@@ -93,7 +93,7 @@ namespace oic {
 		}
 
 		FILE *f{};
-		if(fopen_s(&f, file.path.c_str(), fileOffset == usz_MAX ? "a" : "w") != 0 || !f) {
+		if(fopen_s(&f, file.path.c_str(), fileOffset == usz_MAX ? "a+b" : "w+b") != 0 || !f) {
 			System::log()->fatal(errors::fs::nonExistent);
 			return false;
 		}
@@ -102,6 +102,9 @@ namespace oic {
 			System::log()->fatal(errors::fs::outOfBounds);
 			return false;
 		}
+
+		if (!size)
+			size = buffer.size() - bufferOffset;
 
 		if (fileOffset == usz_MAX)
 			file.fileSize += size;
@@ -113,7 +116,7 @@ namespace oic {
 		else if(fileOffset + size > file.fileSize)
 			file.fileSize = fileOffset + size;
 
-		if(fileOffset != 0 && fileOffset != usz_MAX)
+		if(fileOffset != usz_MAX)
 			fseeko(f, fileOffset, 0);
 
 		fwrite(buffer.data() + bufferOffset, 1, size, f);
