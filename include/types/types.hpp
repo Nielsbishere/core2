@@ -137,6 +137,11 @@ static inline void destroy(T *&ptr) {
     }
 }
 
+template<typename ...args>
+static inline void destroy(args *&...arg) {
+	(destroy(arg), ...);
+}
+
 //Temporary; Might get replaced by custom types
 
 #include <string>
