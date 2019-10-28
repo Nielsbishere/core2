@@ -179,7 +179,7 @@ namespace oic::windows {
 			case WM_PAINT:
 
 				if(auto *ptr = (WWindow*) GetWindowLongPtrA(hwnd, 0))
-					if(ptr->running)
+					if(ptr->running && ptr->info->vinterface)
 						ptr->info->vinterface->render();
 
 				return NULL;
@@ -211,11 +211,26 @@ namespace oic::windows {
 				GetClientRect(hwnd, &r);
 
 				ptr->info->size = { u32(r.right - r.left), u32(r.bottom - r.top) };
-				ptr->info->vinterface->resize(ptr->info->size);
+
+				if(ptr->info->vinterface)
+					ptr->info->vinterface->resize(ptr->info->size);
+
 				break;
 			}
 
-			//TODO: WM_MOVE
+			case WM_MOVE: {
+					
+				auto *ptr = (WWindow*)GetWindowLongPtrA(hwnd, 0);
+
+				if (!ptr)
+					break;
+
+				RECT r;
+				GetClientRect(hwnd, &r);
+
+				ptr->info->offset = { r.left, r.top };
+				break;
+			}
 		}
 
 		return DefWindowProc(hwnd, message, wParam, lParam);
