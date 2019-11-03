@@ -174,6 +174,10 @@ using Vec2u = Array<u32, 2>;
 using Vec3u = Array<u32, 3>;
 using Vec4u = Array<u32, 4>;
 
+using Vec2usz = Array<usz, 2>;
+using Vec3usz = Array<usz, 3>;
+using Vec4usz = Array<usz, 4>;
+
 using Vec2i = Array<i32, 2>;
 using Vec3i = Array<i32, 3>;
 using Vec4i = Array<i32, 4>;
