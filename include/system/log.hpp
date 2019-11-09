@@ -16,7 +16,7 @@ namespace oic {
 
 	public:
 
-		static constexpr usz maxStackTrace = 48;
+		static constexpr usz maxStackTrace = 128;
 		using StackTrace = Array<void *, maxStackTrace>;
 
 		Log() = default;

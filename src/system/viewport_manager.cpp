@@ -11,7 +11,7 @@ namespace oic {
 			return false;
 
 		if (info->vinterface)
-			delete info->vinterface;
+			info->vinterface->release(info);
 
 		for (u32 i = (*it)->id + 1, end = u32(viewports.size()); i < end; ++i) {
 			--viewports[i]->id;
@@ -33,7 +33,7 @@ namespace oic {
 			return false;
 
 		if (info->vinterface)
-			delete info->vinterface;
+			info->vinterface->release(info);
 
 		for (u32 i = (*it)->id + 1, end = u32(viewports.size()); i < end; ++i) {
 			--viewports[i]->id;

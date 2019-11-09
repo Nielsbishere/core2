@@ -97,7 +97,7 @@ namespace oic::windows {
 
 		if (w->info->vinterface) {
 			w->info->vinterface->init(w->info);
-			w->info->vinterface->resize(w->info->size);
+			w->info->vinterface->resize(w->info, w->info->size);
 		}
 
 		ShowWindow(w->hwnd, SW_SHOW);
@@ -180,7 +180,7 @@ namespace oic::windows {
 
 				if(auto *ptr = (WWindow*) GetWindowLongPtrA(hwnd, 0))
 					if(ptr->running && ptr->info->vinterface)
-						ptr->info->vinterface->render();
+						ptr->info->vinterface->render(ptr->info);
 
 				return NULL;
 
@@ -213,7 +213,7 @@ namespace oic::windows {
 				ptr->info->size = { u32(r.right - r.left), u32(r.bottom - r.top) };
 
 				if(ptr->info->vinterface)
-					ptr->info->vinterface->resize(ptr->info->size);
+					ptr->info->vinterface->resize(ptr->info, ptr->info->size);
 
 				break;
 			}
