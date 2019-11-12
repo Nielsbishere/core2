@@ -1,6 +1,5 @@
 #include "system/file_system.hpp"
 #include "system/system.hpp"
-#include "error/ocore.hpp"
 #include "system/log.hpp"
 #include <algorithm>
 
@@ -172,14 +171,14 @@ namespace oic {
 		String apath;
 
 		if (!resolvePath(path, apath))
-			System::log()->fatal(errors::fs::invalid);
+			System::log()->fatal("File path should be in proper oic notation");
 
 		if (apath[0] == '.') {
 
 			auto ou = localFileLut.find(apath);
 
 			if (ou == localFileLut.end())
-				System::log()->fatal(errors::fs::nonExistent);
+				System::log()->fatal("Local file doesn't exist");
 
 			return localFiles[ou->second];
 		}
@@ -187,7 +186,7 @@ namespace oic {
 		auto ou = virtualFileLut.find(apath);
 
 		if (ou == virtualFileLut.end())
-			System::log()->fatal(errors::fs::nonExistent);
+			System::log()->fatal("Virtual file doesn't exist");
 
 		return virtualFiles[ou->second];
 	}
@@ -237,14 +236,14 @@ namespace oic {
 	bool FileSystem::remove(FileHandle handle, bool isLocal) {
 
 		if (handle == 0) {
-			System::log()->fatal(errors::fs::illegal);
+			System::log()->fatal("Can't remove root node");
 			return false;
 		}
 
 		FileInfo &inf = get(handle, isLocal);
 
 		if (!inf.hasAccess(FileAccess::WRITE)) {
-			System::log()->fatal(errors::fs::notPermitted);
+			System::log()->fatal("File access isn't allowed; write access is disabled");
 			return false;
 		}
 
@@ -322,12 +321,12 @@ namespace oic {
 		String apath;
 
 		if (!resolvePath(path, apath)) {
-			System::log()->fatal(errors::fs::nonExistent);
+			System::log()->fatal("Invalid file path");
 			return false;
 		}
 
 		if (exists(apath)) {
-			System::log()->fatal(errors::fs::exists);
+			System::log()->fatal("File already exists");
 			return false;
 		}
 
@@ -362,7 +361,7 @@ namespace oic {
 				String dpath = parent->path + "/" + part;
 
 				if (!add(dpath, true)) {
-					System::log()->fatal(errors::fs::invalid);
+					System::log()->fatal("Couldn't create subdirectory");
 					return false;
 				}
 
@@ -372,7 +371,7 @@ namespace oic {
 		}
 
 		if (!parent->hasAccess(FileAccess::WRITE)) {
-			System::log()->fatal(errors::fs::notPermitted);
+			System::log()->fatal("Write into folder isn't supported");
 			return false;
 		}
 
@@ -384,7 +383,7 @@ namespace oic {
 
 		//The file doesn't have folders/files yet
 		if (handle == 0)
-			System::log()->fatal(errors::fs::illegal);
+			System::log()->fatal("File hint is invalid");
 
 		//Set up the parent's handles
 
@@ -453,7 +452,7 @@ namespace oic {
 		//The folder doesn't have a place to go
 
 		if (hint == 0 && isFolder)
-			System::log()->fatal(errors::fs::illegal);
+			System::log()->fatal("Folder doesn't have place it could be allocated in");
 
 		//Add to system
 
@@ -492,7 +491,7 @@ namespace oic {
 	bool FileSystem::mov(const String &path, const String &npath) {
 
 		if (path.substr(0, path.find_last_of('/')) != npath.substr(0, npath.find_last_of('/'))) {
-			System::log()->fatal(errors::fs::notSupported);
+			System::log()->fatal("Cannot move a file to a different folder: Not supported yet");
 			return false;
 		}
 
@@ -546,7 +545,7 @@ namespace oic {
 	const FileInfo &FileSystem::get(FileHandle id, bool isLocal) const {
 
 		if (id >= size(isLocal))
-			System::log()->fatal(errors::fs::nonExistent);
+			System::log()->fatal("FileHandle doesn't exist");
 
 		return getFiles(isLocal)[id];
 	}

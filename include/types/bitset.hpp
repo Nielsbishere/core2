@@ -143,7 +143,7 @@ namespace oic {
 			static_assert("Bitset(SizeType) is only valid if the number of bits is less than the represented data type's bits");
 
 		if (value > mask)
-			System::log()->fatal(errors::typ::outOfBounds);
+			System::log()->fatal("The Bitset didn't have enough bits to represent the value");
 
 	}
 
@@ -151,7 +151,7 @@ namespace oic {
 	SizeType &Bitset<count, SizeType, V>::at(usz i) {
 
 		if (i >= bufferSize)
-			System::log()->fatal(errors::typ::outOfBounds);
+			System::log()->fatal("The index was out of bounds");
 
 		return data[i];
 	}
@@ -165,7 +165,7 @@ namespace oic {
 	bool Bitset<count, SizeType, V>::operator[](usz i) const {
 
 		if (i >= count)
-			System::log()->fatal(errors::typ::outOfBounds);
+			System::log()->fatal("The index was out of bounds");
 
 		const SizeType &v = data[bufferEnd - i / sizeType];
 		const SizeType bmask = 1 << (i % sizeType);
@@ -177,7 +177,7 @@ namespace oic {
 	void Bitset<count, SizeType, V>::clear(usz i) {
 
 		if (i >= count)
-			System::log()->fatal(errors::typ::outOfBounds);
+			System::log()->fatal("The index was out of bounds");
 
 		SizeType &v = data[bufferEnd - i / sizeType];
 		const SizeType bmask = 1 << (i % sizeType);
@@ -189,7 +189,7 @@ namespace oic {
 	void Bitset<count, SizeType, V>::set(usz i) {
 
 		if (i >= count)
-			System::log()->fatal(errors::typ::outOfBounds);
+			System::log()->fatal("The index was out of bounds");
 
 		SizeType &v = data[bufferEnd - i / sizeType];
 		const SizeType bmask = 1 << (i % sizeType);
@@ -201,7 +201,7 @@ namespace oic {
 	void Bitset<count, SizeType, V>::set(usz i, bool b) {
 
 		if (i >= count)
-			System::log()->fatal(errors::typ::outOfBounds);
+			System::log()->fatal("The index was out of bounds");
 
 		SizeType &v = data[bufferEnd - i / sizeType];
 		const SizeType bmask = 1 << (i % sizeType);

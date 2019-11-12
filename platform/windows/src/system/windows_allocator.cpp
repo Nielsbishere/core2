@@ -1,5 +1,6 @@
 #include "system/windows_allocator.hpp"
 #include "system/windows_system.hpp"
+#include "system/log.hpp"
 #include <Windows.h>
 
 namespace oic::windows {

@@ -1,7 +1,6 @@
 #include "system/windows_file_system.hpp"
 #include "system/system.hpp"
 #include "system/log.hpp"
-#include "error/ocore.hpp"
 #include "system/allocator.hpp"
 
 #include <Windows.h>
@@ -56,7 +55,7 @@ namespace oic {
 		);
 
 		if (directory == INVALID_HANDLE_VALUE)
-			System::log()->fatal(errors::fs::invalid);
+			System::log()->fatal("The folder path is invalid");
 
 		constexpr usz bufferSize = 16_MiB;
 		u8 *buffer = oic::System::allocator()->allocArray<u8>(bufferSize);
@@ -65,7 +64,7 @@ namespace oic {
 		HRESULT hr = GetLastError();
 
 		if(hr != S_OK)
-			System::log()->fatal(errors::fs::illegal);
+			System::log()->fatal("The io completion port couldn't be created");
 
 		OVERLAPPED overlapped;
 		ZeroMemory(&overlapped, sizeof(overlapped));
@@ -77,7 +76,7 @@ namespace oic {
 				FILE_NOTIFY_CHANGE_FILE_NAME | FILE_NOTIFY_CHANGE_DIR_NAME | FILE_NOTIFY_CHANGE_LAST_WRITE,
 				NULL, &overlapped, NULL
 			))
-				System::log()->fatal(errors::fs::invalid);
+				System::log()->fatal("Couldn't read directory changes");
 
 			DWORD returned{};
 			LPOVERLAPPED po;
@@ -90,7 +89,7 @@ namespace oic {
 				if (hr == WAIT_TIMEOUT)
 					continue;
 
-				System::log()->fatal(errors::fs::illegal);
+				System::log()->fatal("The queued status is illegal");
 			}
 
 			FILE_NOTIFY_INFORMATION *fni = (FILE_NOTIFY_INFORMATION*)buffer;
@@ -108,7 +107,7 @@ namespace oic {
 					case FILE_ACTION_REMOVED:
 
 						if (!fs->exists(path))
-							System::log()->fatal(errors::fs::invalid);
+							System::log()->fatal("The removed file path is invalid");
 
 						fs->rem(path);
 						break;
@@ -123,7 +122,7 @@ namespace oic {
 					case FILE_ACTION_MODIFIED:
 
 						if (!fs->exists(path))
-							System::log()->fatal(errors::fs::invalid);
+							System::log()->fatal("The modified file path is invalid");
 
 						fs->upd(path);
 						break;
@@ -133,7 +132,7 @@ namespace oic {
 						fni = (FILE_NOTIFY_INFORMATION*)((u8*)fni + fni->NextEntryOffset);
 
 						if (fni->Action != FILE_ACTION_RENAMED_NEW_NAME)
-							System::log()->fatal(errors::fs::illegal);
+							System::log()->fatal("The rename action requires an old and new name in that sequence");
 
 						newPath = getPath(fni);
 
@@ -141,7 +140,7 @@ namespace oic {
 						break;
 
 					default:
-						System::log()->fatal(errors::fs::illegal);
+						System::log()->fatal("The file operation is illegal");
 
 				}
 
@@ -171,7 +170,7 @@ namespace oic {
 		HANDLE file = FindFirstFileA((ou + "/*").c_str(), &data);
 
 		if (file == INVALID_HANDLE_VALUE)
-			System::log()->fatal(errors::fs::nonExistent);
+			System::log()->fatal("Invalid folder to scan");
 
 		List<String> directories, files;
 		directories.reserve(16);

@@ -24,17 +24,28 @@ namespace oic {
 
 		//TODO: Add ability to print with specs; e.g. no next line, no date, etc.
 
-		virtual void debug(const String &str) = 0;
-		virtual void performance(const String &str) = 0;
-		virtual void warn(const String &str) = 0;
-		virtual void error(const String &str) = 0;
-		virtual void fatal(const String &str) = 0;
+		virtual void print(LogLevel level, const String &str) = 0;
 
 		template<LogLevel level, typename ...args>
 		inline void println(const args &...arg);
 
 		template<typename ...args>
 		inline void println(LogLevel level, const args &...arg);
+
+		template<typename ...args>
+		inline void debug(const String &str);
+
+		template<typename ...args>
+		inline void performance(const String &str);
+
+		template<typename ...args>
+		inline void warn(const String &str);
+
+		template<typename ...args>
+		inline void error(const String &str);
+
+		template<typename ...args>
+		inline void fatal(const String &str);
 
 		template<typename ...args>
 		static inline String concat(const args &...arg);
@@ -66,36 +77,14 @@ namespace oic {
 
 	template<LogLevel level, typename ...args>
 	void Log::println(const args &...arg){
-
-		const String str = concat(arg...);
-
-		if constexpr (level == LogLevel::DEBUG)
-			debug(str);
-		else if constexpr (level == LogLevel::PERFORMANCE)
-			performance(str);
-		else if constexpr (level == LogLevel::WARN)
-			warn(str);
-		else if constexpr (level == LogLevel::ERROR)
-			error(str);
-		else
-			fatal(str);
+		const String str = concat(arg..., "\n");
+		print(level, str);
 	}
 
 	template<typename ...args>
 	inline void Log::println(LogLevel level, const args &...arg) {
-
-		const String str = concat(arg...);
-
-		if (level == LogLevel::DEBUG)
-			debug(str);
-		else if (level == LogLevel::PERFORMANCE)
-			performance(str);
-		else if (level == LogLevel::WARN)
-			warn(str);
-		else if (level == LogLevel::ERROR)
-			error(str);
-		else
-			fatal(str);
+		const String str = concat(arg..., "\n");
+		print(level, str);
 	}
 	
 	template<usz base, typename T, typename>
@@ -135,5 +124,35 @@ namespace oic {
 		return (sign ? "-" : "") + String(minSize - str.size(), '0') + str;
 	}
 
+	template<typename ...args>
+	inline void Log::debug(const String &str) {
+		println<LogLevel::DEBUG>(str);
+	}
 
+	template<typename ...args>
+	inline void Log::performance(const String &str) {
+		println<LogLevel::PERFORMANCE>(str);
+	}
+
+	template<typename ...args>
+	inline void Log::warn(const String &str) {
+		println<LogLevel::ERROR>(str);
+	}
+
+	template<typename ...args>
+	inline void Log::error(const String &str) {
+		println<LogLevel::ERROR>(str);
+	}
+
+	template<typename ...args>
+	inline void Log::fatal(const String &str) {
+		println<LogLevel::FATAL>(str);
+	}
 }
+
+//For full debugging; all fatal errors (and errors) will have origins in files
+//oic::System::log()->fatal(error, ..., ...) will evaluate to error, ..., ..., " at {FILE}::{FUNC}:{LINE}"
+
+#ifndef NDEBUG
+	#define fatal(...) println<oic::LogLevel::FATAL>(__VA_ARGS__, " at ", __FILE__, "::", __func__, ":", std::to_string(__LINE__))
+#endif

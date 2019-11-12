@@ -12,6 +12,7 @@
 #include <comdef.h>
 
 #pragma comment(lib, "DbgHelp.lib")
+#undef fatal
 
 namespace oic::windows {
 
@@ -42,7 +43,7 @@ namespace oic::windows {
 		SetConsoleTextAttribute(handle, color);
 
 		//Print text
-		printf("[%u %02u:%02u:%02u.%06u]  %s\n", thread, timeInfo.tm_hour, timeInfo.tm_min, timeInfo.tm_sec, ns, cstr);
+		printf("[%u %02u:%02u:%02u.%06u]  %s", thread, timeInfo.tm_hour, timeInfo.tm_min, timeInfo.tm_sec, ns, cstr);
 
 		if constexpr (outputToDebugConsole)
 			OutputDebugStringA(cstr);
@@ -50,26 +51,27 @@ namespace oic::windows {
 
 	//Printing text based on log level
 
-	void WLog::debug(const String &str) {
-		print(str.c_str(), 2 /* green */);
-	}
+	void WLog::print(LogLevel level, const String &str) {
 
-	void WLog::performance(const String &str) {
-		print(str.c_str(), 3 /* cyan */);
-	}
+		static const WORD colors[] = {
+			2,	/* green */
+			3,	/* cyan */
+			14,	/* yellow */
+			4,	/* red */
+			12	/* bright red */
+		};
 
-	void WLog::warn(const String &str) {
-		print<true>(str.c_str(), 14 /* yellow */);
-	}
+		WORD color = colors[usz(level)];
 
-	void WLog::error(const String &str) {
-		print<true>(str.c_str(), 4 /* red */);
-	}
+		if (level != LogLevel::DEBUG)
+			windows::print<true>(str.c_str(), color);
+		else
+			windows::print(str.c_str(), color);
 
-	void WLog::fatal(const String &str) {
-		print<true>(str.c_str(), 12 /* bright red */);
-		Log::printStackTrace(1);
-		throw std::exception(str.c_str());
+		if (level == LogLevel::FATAL) {
+			Log::printStackTrace(1);
+			throw std::exception(str.c_str());
+		}
 	}
 
 	//Capture stacktrace
@@ -199,31 +201,31 @@ namespace oic::windows {
 		switch (signal) {
 
 			case SIGABRT:
-				msg = errors::sig::abrt;
+				msg = "Abort was called";
 				break;
 
 			case SIGFPE:
-				msg = errors::sig::fpe;
+				msg = "Floating point error occurred";
 				break;
 
 			case SIGILL:
-				msg = errors::sig::ill;
+				msg = "Illegal instruction";
 				break;
 
 			case SIGINT:
-				msg = errors::sig::interupt;
+				msg = "Interrupt was called";
 				break;
 
 			case SIGSEGV:
-				msg = errors::sig::segv;
+				msg = "Segfault";
 				break;
 
 			case SIGTERM:
-				msg = errors::sig::term;
+				msg = "Terminate was called";
 				break;
 
 			default:
-				msg = errors::sig::undef;
+				msg = "Undefined instruction";
 				break;
 
 		}
@@ -233,7 +235,7 @@ namespace oic::windows {
 		//For debugging purposed however, this is very useful
 		//Turn this off by defining __NO_SIGNAL_HANDLING__
 
-		print<true>(msg, 12 /* bright red */);
+		windows::print<true>(msg, 12 /* bright red */);
 		System::log()->printStackTrace(1);
 		exit(signal);
 	}

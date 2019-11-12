@@ -1,7 +1,5 @@
-#include <stdexcept>
 #include "system/system.hpp"
 #include "system/log.hpp"
-#include "error/ocore.hpp"
 #include "system/viewport_manager.hpp"
 
 namespace oic {

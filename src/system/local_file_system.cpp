@@ -1,7 +1,6 @@
 #include "system/local_file_system.hpp"
 #include "system/system.hpp"
 #include "system/log.hpp"
-#include "error/ocore.hpp"
 
 //64-bit types for Unix
 
@@ -46,18 +45,18 @@ namespace oic {
 			return readVirtual(file, buffer, size, offset);
 
 		if (file.isFolder) {
-			System::log()->fatal(errors::fs::illegal);
+			System::log()->fatal("Can't read from a folder");
 			return false;
 		}
 
 		if (!file.hasAccess(FileAccess::READ)) {
-			System::log()->fatal(errors::fs::notPermitted);
+			System::log()->fatal("Read access isn't permitted");
 			return false;
 		}
 		
 		FILE *f{};
 		if(fopen_s(&f, file.path.c_str(), "rb") != 0 || !f) {
-			System::log()->fatal(errors::fs::nonExistent);
+			System::log()->fatal("File doesn't exist");
 			return false;
 		}
 
@@ -65,7 +64,7 @@ namespace oic {
 			size = file.fileSize - (offset >= file.fileSize ? 0 : offset);
 
 		if (offset + size > file.fileSize) {
-			System::log()->fatal(errors::fs::outOfBounds);
+			System::log()->fatal("File read is out of bounds");
 			fclose(f);
 			return false;
 		}
@@ -83,23 +82,23 @@ namespace oic {
 			return writeVirtual(file, buffer, size, bufferOffset, fileOffset);
 
 		if (file.isFolder) {
-			System::log()->fatal(errors::fs::illegal);
+			System::log()->fatal("File write isn't possible in folders");
 			return false;
 		}
 
 		if (!file.hasAccess(FileAccess::WRITE)) {
-			System::log()->fatal(errors::fs::notPermitted);
+			System::log()->fatal("File write is not permitted");
 			return false;
 		}
 
 		FILE *f{};
 		if(fopen_s(&f, file.path.c_str(), fileOffset == usz_MAX ? "a+b" : "w+b") != 0 || !f) {
-			System::log()->fatal(errors::fs::nonExistent);
+			System::log()->fatal("File doesn't exist");
 			return false;
 		}
 
 		if (bufferOffset + size > buffer.size()) {
-			System::log()->fatal(errors::fs::outOfBounds);
+			System::log()->fatal("File write out of bounds");
 			return false;
 		}
 
@@ -110,7 +109,7 @@ namespace oic {
 			file.fileSize += size;
 
 		else if (fileOffset > file.fileSize) {
-			System::log()->fatal(errors::fs::outOfBounds);
+			System::log()->fatal("File write out of bounds");
 			return false;
 		}
 		else if(fileOffset + size > file.fileSize)
@@ -128,14 +127,14 @@ namespace oic {
 	bool LocalFileSystem::make(FileInfo &file) {
 
 		if (!file.isLocal()) {
-			System::log()->fatal(errors::fs::notSupported);
+			System::log()->fatal("Couldn't create a file in a virtual space");
 			return false;
 		}
 
 		if (file.isFolder) {
 
 			if (_mkdir(file.path.c_str()) != 0) {
-				System::log()->fatal(errors::fs::illegal);
+				System::log()->fatal("Couldn't create local folder");
 				return false;
 			}
 
@@ -143,7 +142,7 @@ namespace oic {
 
 			FILE *f{};
 			if (fopen_s(&f, file.path.c_str(), "w") != 0 || !f) {
-				System::log()->fatal(errors::fs::nonExistent);
+				System::log()->fatal("Couldn't create local file");
 				return false;
 			}
 
