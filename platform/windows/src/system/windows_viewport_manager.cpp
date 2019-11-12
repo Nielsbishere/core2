@@ -48,7 +48,7 @@ namespace oic::windows {
 		DWORD style = WS_VISIBLE;
 
 		if (info->hasHint(ViewportInfo::FULL_SCREEN))
-			style |= WS_POPUP;
+			style |= WS_POPUPWINDOW;
 
 		else if(!info->hasHint(ViewportInfo::NO_MENU)) {
 
@@ -72,6 +72,10 @@ namespace oic::windows {
 			info->offset[0], info->offset[1], info->size[0], info->size[1],
 			NULL, NULL, instance, NULL
 		);
+
+		RECT r{};
+		GetClientRect(hwnd, &r);
+		info->size = { u32(r.right - r.left), u32(r.bottom - r.top) };
 
 		if(hwnd == NULL) {
 			String err = getLastError();

@@ -37,7 +37,7 @@ namespace oic {
 		//Used for when communicating data to sync
 		std::mutex fence;
 
-		ViewportInfo(const String &name, Vec2i offset, Vec2u size, u32 layer, ViewportInterface *vinterface = nullptr, Hint hint = NONE):
+		ViewportInfo(const String &name, Vec2i offset, Vec2u size, u32 layer, ViewportInterface *vinterface, Hint hint = NONE):
 			name(name), offset(offset), size(size), layer(layer), id(), hint(hint), vinterface(vinterface) {}
 
 		ViewportInfo(ViewportInfo&&) = delete;
