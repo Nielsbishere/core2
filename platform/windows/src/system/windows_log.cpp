@@ -69,7 +69,7 @@ namespace oic::windows {
 
 		if (level == LogLevel::FATAL) {
 			Log::printStackTrace(1);
-			throw std::exception(str.c_str());
+			throw std::runtime_error(str.c_str());
 		}
 	}
 
