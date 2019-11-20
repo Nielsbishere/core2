@@ -25,9 +25,6 @@ endif()
 file(GLOB_RECURSE platformHpp "platform/${platform}/include/*.hpp")
 file(GLOB_RECURSE platformCpp "platform/${platform}/src/*.cpp")
 
-include_directories(include)
-include_directories(platform/${platform}/include)
-
 add_library(
 	ocore
 	STATIC
@@ -37,6 +34,9 @@ add_library(
 	${platformCpp}
 	CMakeLists.txt
 )
+
+target_include_directories(ocore PRIVATE include)
+target_include_directories(ocore PRIVATE platform/${platform}/include)
 
 source_group("Header Files" FILES ${ocoreHpp})
 source_group("Source Files" FILES ${ocoreCpp})
