@@ -12,6 +12,9 @@ namespace oic {
 	FileInfo::SizeType FileInfo::getFileObjects() const { return fileEnd - folderHint; }
 	bool FileInfo::isLocal() const { return path[0] == lroot[0]; }
 	bool FileInfo::hasData() const { return fileSize != 0; }
+	bool FileInfo::hasRegion(usz size, usz offset) const {
+		return fileSize > 0 && fileSize > size + offset;
+	}
 
     bool FileInfo::hasAccess(FileAccess flags) const {
 		return hasAccess(access, flags);
@@ -206,6 +209,31 @@ namespace oic {
 			return virtualFileLut.find(apath) != virtualFileLut.end();
 
 		return localFileLut.find(apath) != localFileLut.end();
+	}
+
+	bool FileSystem::regionExists(const String &path, usz size, usz offset) const {
+
+		String apath;
+
+		if (!resolvePath(path, apath))
+			return false;
+
+		if (apath[0] == '~') {
+
+			auto it = virtualFileLut.find(apath);
+
+			if (it == virtualFileLut.end())
+				return false;
+
+			return virtualFiles[it->second].hasRegion(size, offset);
+		}
+
+		auto it = localFileLut.find(apath);
+
+		if (it == localFileLut.end())
+			return false;
+
+		return localFiles[it->second].hasRegion(size, offset);
 	}
 
 	void FileSystem::initLut() {

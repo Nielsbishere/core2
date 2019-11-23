@@ -103,6 +103,8 @@ namespace oic {
 		//!Determines if this file or folder has data attached to it
 		bool hasData() const;
 
+		bool hasRegion(usz size, usz offset) const;
+
     };
 
     //!A callback for handling file changes and loops
@@ -188,6 +190,11 @@ namespace oic {
 		//@param[in] path The target file object with oic file notation
 		//@return bool exists Whether the path leads to a valid path
 		bool exists(const String &path) const;
+
+		//!Detect if the path exists
+		//@param[in] path The target file object with oic file notation
+		//@return bool exists Whether the file has the specified region
+		bool regionExists(const String &path, usz size, usz offset) const;
 
         //!Read a (part of a) file into a buffer
         //@param[in] file The target file object
