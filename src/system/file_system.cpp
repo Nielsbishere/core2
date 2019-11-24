@@ -582,4 +582,17 @@ namespace oic {
 		return (FileInfo&)((const FileSystem*)this)->get(id, isLocal);
 	}
 
+	bool FileSystem::read(const FileInfo &file, Buffer &buffer, usz size, usz offset) const {
+
+		if (offset + size > file.fileSize) {
+			oic::System::log()->fatal("File read out of bounds");
+			return false;
+		}
+
+		if (!size) size = file.fileSize - offset;
+
+		buffer.resize(size);
+		return read(file, buffer.data(), size, offset);
+	}
+
 }

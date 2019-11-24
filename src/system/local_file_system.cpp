@@ -39,10 +39,10 @@ namespace oic {
 		return localPath;
 	}
 
-	bool LocalFileSystem::read(const FileInfo &file, Buffer &buffer, usz size, usz offset) const {
+	bool LocalFileSystem::read(const FileInfo &file, void *data, usz size, usz offset) const {
 
 		if (!file.isLocal())
-			return readVirtual(file, buffer, size, offset);
+			return readVirtual(file, data, size, offset);
 
 		if (file.isFolder) {
 			System::log()->fatal("Can't read from a folder");
@@ -69,9 +69,8 @@ namespace oic {
 			return false;
 		}
 
-		buffer.resize(size);
-
-		fread(buffer.data() + offset, 1, size, f);
+		fseeko(f, offset, 0);
+		fread(data, 1, size, f);
 		fclose(f);
 		return true;
 	}

@@ -196,13 +196,31 @@ namespace oic {
 		//@return bool exists Whether the file has the specified region
 		bool regionExists(const String &path, usz size, usz offset) const;
 
+		//!Read a (part of a) file into an address (means you have to allocate 'size' bytes)
+		//@param[in] file The target file object
+		//@param[out] address (u8[size])
+		//@param[in] size The number of bytes to read (non-zero)
+		//@param[in] offset The byte offset in the file
+		//@return bool success
+		virtual bool read(const FileInfo &file, void *address, usz size, usz offset) const = 0;
+
+		//!Read a (part of a) file into an address (means you have to allocate 'size' bytes)
+		//@param[in] path The path in oic file notation
+		//@param[out] address (u8[size])
+		//@param[in] size The number of bytes to read (non-zero)
+		//@param[in] offset The byte offset in the file
+		//@return bool success
+		inline bool read(const String &str, void *address, usz size, usz offset) const {
+			return read(get(str), address, size, offset);
+		}
+
         //!Read a (part of a) file into a buffer
         //@param[in] file The target file object
         //@param[out] buffer The output
         //@param[in] size The number of bytes to read (0 = all by default)
         //@param[in] offset The byte offset in the file
         //@return bool success
-        virtual bool read(const FileInfo &file, Buffer &buffer, usz size = 0, usz offset = 0) const = 0;
+		bool read(const FileInfo &file, Buffer &buffer, usz size = 0, usz offset = 0) const;
 
 		//!Read a (part of a) file into a buffer
 		//@param[in] path The path in oic file notation

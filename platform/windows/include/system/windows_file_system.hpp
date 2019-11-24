@@ -13,7 +13,7 @@ namespace oic {
 
 	protected:
 
-		bool readVirtual(const FileInfo &file, Buffer &buffer, usz size, usz offset) const final override;
+		bool readVirtual(const FileInfo &file, void *data, usz size, usz offset) const final override;
 		void initFileWatcher() final override;
 		void initFiles() final override;
 

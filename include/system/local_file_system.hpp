@@ -19,7 +19,7 @@ namespace oic {
 		const String &getLocalPath() const;
 
 		//!Read the local file using the C File API
-		bool read(const FileInfo &file, Buffer &buffer, usz size = 0, usz offset = 0) const final override;
+		bool read(const FileInfo &file, void *address, usz size = 0, usz offset = 0) const final override;
 
 		//!Write to the local file using the C File API
 		bool write(FileInfo &file, const Buffer &buffer, usz size = 0, usz bufferOffset = 0, usz fileOffset = 0) final override;
@@ -37,7 +37,7 @@ namespace oic {
 		void initFile(FileInfo &file);
 
 		//!Read the virtual file
-		virtual bool readVirtual(const FileInfo &file, Buffer &buffer, usz size, usz offset) const = 0;
+		virtual bool readVirtual(const FileInfo &file, void *data, usz size, usz offset) const = 0;
 
 		//!Write to the virtual file
 		//Since most virtual file systems are read only, this is optional
