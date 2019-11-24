@@ -61,7 +61,7 @@ namespace oic {
 		T *addr = (T*)alloc(sizeof(T), HEAP);
 
 		if constexpr (std::is_class_v<T> || sizeof...(arg) != 0)
-			::new T(addr)(arg...);
+			::new(addr) T(arg...);
 
 		return (T*)addr;
 	}
@@ -73,7 +73,7 @@ namespace oic {
 
 		if constexpr (std::is_class_v<T> || sizeof...(arg) != 0)
 			for(usz i = 0; i < count; ++i)
-				::new T(addr + i)(arg...);
+				::new(addr + i) T(arg...);
 
 		return addr;
 	}
@@ -88,7 +88,7 @@ namespace oic {
 		if constexpr (std::is_class_v<T> || sizeof...(arg) != 0)
 			if (!(hint & RESERVE))
 				for(usz i = 0; i < count; ++i)
-					::new T(addr + i)(arg...);
+					::new(addr + i) T(arg...);
 
 		return addr;
 	}
