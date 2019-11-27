@@ -18,7 +18,7 @@ namespace oic::windows {
 			if (hint & RESERVE) type |= MEM_RESERVE;
 			if (hint & COMMIT) type |= MEM_COMMIT;
 
-			addr = VirtualAlloc(
+			addr = VirtualAlloc/*FromApp*/(
 				LPVOID(addressHint), size, type, PAGE_READWRITE
 			);
 		}

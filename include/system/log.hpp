@@ -148,11 +148,15 @@ namespace oic {
 	inline void Log::fatal(const String &str) {
 		println<LogLevel::FATAL>(str);
 	}
+
+	//For full debugging; all fatal errors (and errors) will have origins in files
+	//oic::System::log()->fatal(error, ..., ...) will evaluate to error, ..., ..., " at {FILE}::{FUNC}:{LINE}"
+
+	#ifndef NDEBUG
+		#define fatal(...) println<oic::LogLevel::FATAL>(__VA_ARGS__, " at " __FILE__ "::", __func__, ":", std::to_string(__LINE__))
+	#endif
+
+	//Asserts
+
+	#define oicAssert(b, error) if(!(b)) oic::System::log()->fatal("Assert failed: " error);
 }
-
-//For full debugging; all fatal errors (and errors) will have origins in files
-//oic::System::log()->fatal(error, ..., ...) will evaluate to error, ..., ..., " at {FILE}::{FUNC}:{LINE}"
-
-#ifndef NDEBUG
-	#define fatal(...) println<oic::LogLevel::FATAL>(__VA_ARGS__, " at ", __FILE__, "::", __func__, ":", std::to_string(__LINE__))
-#endif
