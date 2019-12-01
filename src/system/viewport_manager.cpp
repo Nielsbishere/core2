@@ -1,5 +1,6 @@
 #include "system/viewport_manager.hpp"
 #include "system/viewport_interface.hpp"
+#include "input/input_device.hpp"
 
 namespace oic {
 
@@ -17,6 +18,11 @@ namespace oic {
 			--viewports[i]->id;
 			--idMap.find(viewports[i]->name)->second;
 		}
+
+		for (auto *dev : info->devices)
+			delete dev;
+
+		(*it)->devices.clear();
 
 		idMap.erase(info->name);
 		viewports.erase(it);
@@ -39,6 +45,11 @@ namespace oic {
 			--viewports[i]->id;
 			--idMap.find(viewports[i]->name)->second;
 		}
+
+		for (auto *dev : info->devices)
+			delete dev;
+
+		(*it)->devices.clear();
 
 		idMap.erase(info->name);
 		viewports.erase(it);

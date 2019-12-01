@@ -62,13 +62,26 @@ namespace oic::windows {
 
 		WORD color = colors[usz(level)];
 
-		if (level != LogLevel::DEBUG)
-			windows::print<true>(str.c_str(), color);
-		else
+		if (level != LogLevel::DEBUG) {
+
+			HRESULT hr = GetLastError();
+			String err;
+
+			if (hr != S_OK)
+				err = std::system_category().message(hr);
+
+			windows::print<true>((str + err + "\n").c_str(), color);
+		} else
 			windows::print(str.c_str(), color);
 
 		if (level == LogLevel::FATAL) {
+
 			Log::printStackTrace(1);
+
+			#ifndef NDEBUG
+				DebugBreak();
+			#endif
+
 			throw std::runtime_error(str.c_str());
 		}
 	}

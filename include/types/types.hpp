@@ -107,8 +107,12 @@ constexpr f32 f32_MAX = std::numeric_limits<f32>::max();
 constexpr f64 f64_MIN = std::numeric_limits<f64>::min();
 constexpr f64 f64_MAX = std::numeric_limits<f64>::max();
 
+constexpr usz usz_BYTES = sizeof(usz);
+constexpr usz usz_BYTE_SHIFT = usz_BYTES == 8 ? 3 : 2;	//1 << usz_BYTE_SHIFT == usz_BYTES
+constexpr usz usz_BIT_SHIFT = usz_BYTES == 8 ? 6 : 5;	//1 << usz_BIT_SHIFT == usz_BYTES
+constexpr usz usz_BITS = usz_BYTES << 3;
 constexpr usz usz_MIN = 0;
-constexpr usz usz_MAX = usz(sizeof(usz) == 8 ? u64_MAX : u32_MAX);		//if usz is u32, will cut from u64_MAX to u32_MAX
+constexpr usz usz_MAX = usz(usz_BITS == 64 ? u64_MAX : u32_MAX);		//if usz is u32, will cut from u64_MAX to u32_MAX
 
 //GPU boolean
 

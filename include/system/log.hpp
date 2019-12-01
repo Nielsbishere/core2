@@ -158,5 +158,5 @@ namespace oic {
 
 	//Asserts
 
-	#define oicAssert(b, error) if(!(b)) oic::System::log()->fatal("Assert failed: " error);
+	#define oicAssert(error, ...) if(!(__VA_ARGS__)) oic::System::log()->fatal("Assert failed: " error);
 }

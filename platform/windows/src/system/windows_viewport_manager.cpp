@@ -2,9 +2,18 @@
 #include "system/viewport_interface.hpp"
 #include "system/system.hpp"
 #include "system/log.hpp"
+#include "input/keyboard.hpp"
+#include "input/mouse.hpp"
+#include "input/windows_input.hpp"
+#include "utils/timer.hpp"
 #include <comdef.h>
 #include <Windows.h>
 #include <stdio.h>
+
+namespace oic {
+	bool Mouse::isSupported(Handle) const { return true; }
+	bool Keyboard::isSupported(Handle) const { return true; }
+}
 
 namespace oic::windows {
 
@@ -16,7 +25,7 @@ namespace oic::windows {
 
 	LRESULT CALLBACK onCallback(HWND hwnd, UINT message, WPARAM wParam, LPARAM lParam);
 
-	WViewportManager::WViewportManager(): instance(GetModuleHandleA(NULL)) {}
+	WViewportManager::WViewportManager(): instance(GetModuleHandleA(NULL)) { }
 	
 	WViewportManager::~WViewportManager() {
 
@@ -106,11 +115,35 @@ namespace oic::windows {
 
 		ShowWindow(w->hwnd, SW_SHOW);
 
+		if (data->info->hasHint(ViewportInfo::HANDLE_INPUT)) {
+
+			//Register for both mice and keyboard
+			RAWINPUTDEVICE test[] = {
+				{
+					0x01,
+					0x06,
+					RIDEV_APPKEYS | RIDEV_DEVNOTIFY | RIDEV_NOLEGACY,
+					w->hwnd
+				},
+				{
+					0x01,
+					0x02,
+					RIDEV_DEVNOTIFY | RIDEV_NOLEGACY,
+					w->hwnd
+				}
+			};
+
+			oicAssert("Couldn't register input devices", RegisterRawInputDevices(test, 2, sizeof(RAWINPUTDEVICE)));
+
+		}
+
 		w->running = data->ready = true;
 		data->cv.notify_one();
 
 		MSG msg, *msgp = &msg;
 		bool quit = false;
+
+		ns last{};
 
 		while (w->running) {
 
@@ -133,6 +166,25 @@ namespace oic::windows {
 				//Exit called from current thread
 				if (msg.hwnd == NULL)
 					break;
+
+				//Update interface
+
+				ns now = oic::Timer::now();
+
+				if (w->info->vinterface)
+					w->info->vinterface->update(w->info, last ? (now - last) / 1'000'000'000.0 : 0);
+
+				last = oic::Timer::now();
+
+				//Update input
+
+				for (auto dvc : w->info->devices)
+					for (ButtonHandle i = 0, j = ButtonHandle(dvc->getButtonCount()); i < j; ++i)
+						if (dvc->getState(i) == 0x2 /* released */)
+							dvc->setPreviousState(i, false);
+						else if (dvc->getState(i) == 0x1 /* pressed */)
+							dvc->setPreviousState(i, true);
+
 			}
 		}
 
@@ -180,11 +232,120 @@ namespace oic::windows {
 			case WM_CREATE:
 				break;
 
+			case WM_INPUT: {
+
+				u32 size{};
+
+				GetRawInputData((HRAWINPUT)lParam, RID_INPUT, NULL, &size, sizeof(RAWINPUTHEADER));
+
+				Buffer buf(size);
+
+				oicAssert("Couldn't read input", GetRawInputData((HRAWINPUT)lParam, RID_INPUT, buf.data(), &size, sizeof(RAWINPUTHEADER)) == size);
+
+				RAWINPUT *data = (RAWINPUT*)buf.data();
+
+				if(data->header.hDevice)
+					if (auto *ptr = (WWindow *)GetWindowLongPtrA(hwnd, 0)) {
+
+						InputDevice *&dvc = ptr->devices[data->header.hDevice];
+
+						if (dvc->getType() == InputDevice::Type::KEYBOARD) {
+
+							auto &keyboardDat = data->data.keyboard;
+
+							usz id = WKey::idByValue(WKey::_E(keyboardDat.VKey));
+
+							//Only send recognized keys
+
+							if (id != WKey::count) {
+
+								usz keyCode = Key::idByName(WKey::nameById(id));
+								bool isKeyDown = !(keyboardDat.Flags & 1);
+
+								bool pressed = dvc->getCurrentState(ButtonHandle(keyCode));
+								dvc->setState(ButtonHandle(keyCode), isKeyDown);
+
+								if (ptr->info->vinterface && pressed != isKeyDown) {
+
+									if (isKeyDown)
+										ptr->info->vinterface->onKeyPress(ptr->info, dvc, InputDevice::Handle(keyCode));
+									else 
+										ptr->info->vinterface->onKeyRelease(ptr->info, dvc, InputDevice::Handle(keyCode));
+								};
+							}
+
+							return 0;
+
+						} else {
+
+							auto &mouseDat = data->data.mouse;
+
+							mouseDat;
+							//__debugbreak();
+						}
+
+					}
+
+				return DefRawInputProc(&data, 1, sizeof(*data));
+			}
+
+			case WM_INPUT_DEVICE_CHANGE: {
+
+				if (auto *ptr = (WWindow*)GetWindowLongPtrA(hwnd, 0)) {
+
+					RID_DEVICE_INFO deviceInfo{};
+					u32 size = sizeof(deviceInfo);
+					oicAssert("Couldn't get raw input device", GetRawInputDeviceInfoA((HANDLE)lParam, RIDI_DEVICEINFO, &deviceInfo, &size));
+
+					auto *info = ptr->info;
+					bool isAdded = wParam == GIDC_ARRIVAL;
+					InputDevice *&dvc = ptr->devices[(HANDLE)lParam];
+
+					oicAssert("Device change was already notified", bool(dvc) != isAdded);
+
+					if (isAdded) {
+
+						bool isKeyboard = deviceInfo.dwType == RIM_TYPEKEYBOARD;
+
+						if (isKeyboard)
+							info->devices.push_back(dvc = new Keyboard());
+						else
+							info->devices.push_back(dvc = new Mouse());
+
+						if (info->vinterface)
+							info->vinterface->onDeviceConnect(info, dvc);
+
+						RAWINPUTDEVICE device {
+							0x01,
+							u16(isKeyboard ? 0x06 : 0x02),
+							u32((isKeyboard ? RIDEV_APPKEYS : 0) | RIDEV_NOLEGACY),
+							hwnd
+						};
+
+						oicAssert("Couldn't create raw input device", RegisterRawInputDevices(&device, 1, sizeof(RAWINPUTDEVICE)));
+
+					} else {
+
+						if (info->vinterface)
+							info->vinterface->onDeviceRemoval(info, dvc);
+
+						info->devices.erase(std::find(ptr->info->devices.begin(), ptr->info->devices.end(), dvc));
+						ptr->devices.erase((HANDLE)lParam);
+						delete dvc;
+					}
+
+				}
+
+				return 0;
+			}
+
 			case WM_PAINT:
 
-				if(auto *ptr = (WWindow*) GetWindowLongPtrA(hwnd, 0))
-					if(ptr->running && ptr->info->vinterface)
+				if (auto *ptr = (WWindow*)GetWindowLongPtrA(hwnd, 0)) {
+
+					if (ptr->running && ptr->info->vinterface)
 						ptr->info->vinterface->render(ptr->info);
+				}
 
 				return NULL;
 

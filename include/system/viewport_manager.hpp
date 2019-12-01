@@ -6,14 +6,17 @@ namespace oic {
 
 	class ViewportInterface;
 
+	class InputDevice;
+
 	struct ViewportInfo {
 
 		enum Hint : u8 {
 			NONE,
-			FULL_SCREEN = 1,
-			NO_MENU = 2,
+			FULL_SCREEN,
+			NO_MENU,
 			NOT_RESIZABLE = 4,
-			NOT_MINIMIZABLE = 8
+			NOT_MINIMIZABLE = 8,
+			HANDLE_INPUT = 16
 		};
 
 		//The name of this layer
@@ -33,6 +36,9 @@ namespace oic {
 		
 		//Callback for viewport functions
 		ViewportInterface *vinterface;
+
+		//Devices
+		List<InputDevice*> devices;
 
 		//Used for when communicating data to sync
 		std::mutex fence;

@@ -7,7 +7,9 @@ struct HINSTANCE__;
 using HINSTANCE = HINSTANCE__ *;
 
 struct HWND__;
-using HWND = HWND__ *;
+using HWND = HWND__*;
+
+using HANDLE = void*;
 
 namespace oic::windows {
 
@@ -17,6 +19,8 @@ namespace oic::windows {
 		HWND hwnd;
 		bool running;
 		std::future<void> thr;
+
+		HashMap<HANDLE, InputDevice*> devices;
 
 		WWindow(ViewportInfo *info, HINSTANCE instance);
 		~WWindow();
