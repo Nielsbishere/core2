@@ -30,6 +30,8 @@ namespace oic {
 
 		};
 
+		enum State : u8 { UP, PRESSED, RELEASED, DOWN };
+
 		using Handle = InputHandle;
 
 		InputDevice(Type type, ButtonHandle buttons, AxisHandle axes);
@@ -65,18 +67,17 @@ namespace oic {
 		inline bool isPressed(Handle handle) const;
 
 		inline f64 getAxis(Handle handle) const;
-		inline f64 getAxisDelta(Handle handle) const;
 
 		inline Type getType() const { return type; }
 		inline void pushUpdate();
 
 		inline Handle getButtonStart() const { return 0; }
 		inline Handle getButtonEnd() const { return buttonCount; }
-		inline Handle getButtonCount() const { return buttonCount; }
+		inline ButtonHandle getButtonCount() const { return buttonCount; }
 
 		inline Handle getAxisStart() const { return buttonCount; }
 		inline Handle getAxisEnd() const { return buttonCount + axisCount; }
-		inline Handle getAxisCount() const { return axisCount; }
+		inline AxisHandle getAxisCount() const { return axisCount; }
 
 		inline Handle begin() const { return 0; }
 		inline Handle end() const { return buttonCount + axisCount; }
@@ -182,15 +183,6 @@ namespace oic {
 			return getCurrentState(ButtonHandle(handle));
 
 		return getCurrentAxis(AxisHandle(handle - buttonCount));
-	}
-
-	inline f64 InputDevice::getAxisDelta(Handle handle) const {
-
-		if (handle < buttonCount)
-			return f64(getPreviousState(ButtonHandle(handle))) - getCurrentState(ButtonHandle(handle));
-
-		handle -= buttonCount;
-		return getPreviousAxis(AxisHandle(handle)) - getCurrentAxis(AxisHandle(handle));
 	}
 
 	inline void InputDevice::pushUpdate() {

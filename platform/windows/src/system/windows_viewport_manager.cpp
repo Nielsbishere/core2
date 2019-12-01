@@ -122,13 +122,13 @@ namespace oic::windows {
 				{
 					0x01,
 					0x06,
-					RIDEV_APPKEYS | RIDEV_DEVNOTIFY | RIDEV_NOLEGACY,
+					RIDEV_DEVNOTIFY,
 					w->hwnd
 				},
 				{
 					0x01,
 					0x02,
-					RIDEV_DEVNOTIFY | RIDEV_NOLEGACY,
+					RIDEV_DEVNOTIFY,
 					w->hwnd
 				}
 			};
@@ -178,12 +178,17 @@ namespace oic::windows {
 
 				//Update input
 
-				for (auto dvc : w->info->devices)
+				for (auto dvc : w->info->devices) {
+
 					for (ButtonHandle i = 0, j = ButtonHandle(dvc->getButtonCount()); i < j; ++i)
 						if (dvc->getState(i) == 0x2 /* released */)
 							dvc->setPreviousState(i, false);
 						else if (dvc->getState(i) == 0x1 /* pressed */)
 							dvc->setPreviousState(i, true);
+
+					for (AxisHandle i = 0, j = dvc->getAxisCount(); i < j; ++i)
+						dvc->setPreviousAxis(i, dvc->getCurrentAxis(i));
+				}
 
 			}
 		}
@@ -244,6 +249,16 @@ namespace oic::windows {
 
 				RAWINPUT *data = (RAWINPUT*)buf.data();
 
+				RECT rect;
+				GetWindowRect(hwnd, &rect);
+
+				//For some reason it's 8 pixels off?
+
+				int menuSize = GetSystemMetrics(SM_CYMENU);
+
+				rect.left += 8;
+				rect.top += 8 + menuSize;
+
 				if(data->header.hDevice)
 					if (auto *ptr = (WWindow *)GetWindowLongPtrA(hwnd, 0)) {
 
@@ -254,6 +269,8 @@ namespace oic::windows {
 							auto &keyboardDat = data->data.keyboard;
 
 							usz id = WKey::idByValue(WKey::_E(keyboardDat.VKey));
+
+							//TODO: Keyboard should initialize CAPS, SHIFT, ALT if they get changed or on start/switch
 
 							//Only send recognized keys
 
@@ -268,9 +285,9 @@ namespace oic::windows {
 								if (ptr->info->vinterface && pressed != isKeyDown) {
 
 									if (isKeyDown)
-										ptr->info->vinterface->onKeyPress(ptr->info, dvc, InputDevice::Handle(keyCode));
+										ptr->info->vinterface->onInputActivate(ptr->info, dvc, InputDevice::Handle(keyCode));
 									else 
-										ptr->info->vinterface->onKeyRelease(ptr->info, dvc, InputDevice::Handle(keyCode));
+										ptr->info->vinterface->onInputDeactivate(ptr->info, dvc, InputDevice::Handle(keyCode));
 								};
 							}
 
@@ -280,8 +297,51 @@ namespace oic::windows {
 
 							auto &mouseDat = data->data.mouse;
 
-							mouseDat;
-							//__debugbreak();
+							for (usz i = 0; i < 5; ++i) {
+
+								if (mouseDat.usButtonFlags & (1 << (i << 1))) {
+
+									dvc->setPreviousState(ButtonHandle(i), dvc->getPreviousState(ButtonHandle(i)));
+									dvc->setState(ButtonHandle(i), true);
+
+									if(ptr->info->vinterface)
+										ptr->info->vinterface->onInputActivate(ptr->info, dvc, InputDevice::Handle(i));
+								}
+
+								else if (mouseDat.usButtonFlags & (2 << (i << 1))) {
+
+									dvc->setPreviousState(ButtonHandle(i), true);
+									dvc->setState(ButtonHandle(i), false);
+
+									if(ptr->info->vinterface)
+										ptr->info->vinterface->onInputDeactivate(ptr->info, dvc, InputDevice::Handle(i));
+								}
+
+							}
+
+							if (mouseDat.usButtonFlags & RI_MOUSE_WHEEL)
+								dvc->setAxis(MouseAxis::AXIS_WHEEL, i16(mouseDat.usButtonData) / f64(i16_MAX));
+
+							if (mouseDat.usFlags & MOUSE_MOVE_ABSOLUTE) {
+
+								f64 x = f64(mouseDat.lLastX) - rect.left, y = f64(mouseDat.lLastY) - rect.top;
+
+								dvc->setAxis(MouseAxis::AXIS_DELTA_X, dvc->getCurrentAxis(MouseAxis::AXIS_X) - x);
+								dvc->setAxis(MouseAxis::AXIS_DELTA_Y, dvc->getCurrentAxis(MouseAxis::AXIS_Y) - y);
+								dvc->setAxis(MouseAxis::AXIS_X, x);
+								dvc->setAxis(MouseAxis::AXIS_Y, y);
+
+							} else {
+
+								dvc->setAxis(MouseAxis::AXIS_DELTA_X, mouseDat.lLastX);
+								dvc->setAxis(MouseAxis::AXIS_DELTA_Y, mouseDat.lLastY);
+
+								POINT point;
+								GetCursorPos(&point);
+
+								dvc->setAxis(MouseAxis::AXIS_X, f64(point.x) - rect.left);
+								dvc->setAxis(MouseAxis::AXIS_Y, f64(point.y) - rect.top);
+							}
 						}
 
 					}
@@ -318,9 +378,16 @@ namespace oic::windows {
 						RAWINPUTDEVICE device {
 							0x01,
 							u16(isKeyboard ? 0x06 : 0x02),
-							u32((isKeyboard ? RIDEV_APPKEYS : 0) | RIDEV_NOLEGACY),
+							0x0,
 							hwnd
 						};
+
+						if (!isKeyboard) {
+							POINT point;
+							GetCursorPos(&point);
+							dvc->setAxis(MouseAxis::AXIS_X, point.x);
+							dvc->setAxis(MouseAxis::AXIS_Y, point.y);
+						}
 
 						oicAssert("Couldn't create raw input device", RegisterRawInputDevices(&device, 1, sizeof(RAWINPUTDEVICE)));
 

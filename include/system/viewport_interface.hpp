@@ -23,8 +23,8 @@ namespace oic {
 		virtual void onDeviceConnect(const ViewportInfo*, const InputDevice*) {}
 		virtual void onDeviceRemoval(const ViewportInfo*, const InputDevice*) {}
 
-		virtual void onKeyPress(const ViewportInfo*, const InputDevice*, InputHandle) {}
-		virtual void onKeyRelease(const ViewportInfo*, const InputDevice*, InputHandle) {}
+		virtual void onInputActivate(const ViewportInfo*, const InputDevice*, InputHandle) {}
+		virtual void onInputDeactivate(const ViewportInfo*, const InputDevice*, InputHandle) {}
 
 	};
 

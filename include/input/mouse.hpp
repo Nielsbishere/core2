@@ -8,12 +8,12 @@ namespace oic {
 
 	oicExposedEnum(
 		MouseButton, ButtonHandle, 
-		BUTTON_LEFT, BUTTON_MIDDLE, BUTTON_RIGHT, BUTTON_BACK, BUTTON_FORWARD
+		BUTTON_LEFT, BUTTON_RIGHT, BUTTON_MIDDLE, BUTTON_BACK, BUTTON_FORWARD
 	);
 
 	oicExposedEnum(
 		MouseAxis, AxisHandle,
-		AXIS_X, AXIS_Y, AXIS_WHEEL
+		AXIS_X, AXIS_Y, AXIS_DELTA_X, AXIS_DELTA_Y, AXIS_WHEEL
 	);
 
 	//
@@ -43,7 +43,7 @@ namespace oic {
 		
 			if (id >= end()) return "";
 
-			if (id >= MouseButton::count)
+			if (id < MouseButton::count)
 				return MouseButton::nameById(id);
 
 			return MouseAxis::nameById(id - MouseButton::count);

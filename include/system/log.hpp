@@ -33,19 +33,19 @@ namespace oic {
 		inline void println(LogLevel level, const args &...arg);
 
 		template<typename ...args>
-		inline void debug(const String &str);
+		inline void debug(const args &...arg);
 
 		template<typename ...args>
-		inline void performance(const String &str);
+		inline void performance(const args &...arg);
 
 		template<typename ...args>
-		inline void warn(const String &str);
+		inline void warn(const args &...arg);
 
 		template<typename ...args>
-		inline void error(const String &str);
+		inline void error(const args &...arg);
 
 		template<typename ...args>
-		inline void fatal(const String &str);
+		inline void fatal(const args &...arg);
 
 		template<typename ...args>
 		static inline String concat(const args &...arg);
@@ -125,28 +125,28 @@ namespace oic {
 	}
 
 	template<typename ...args>
-	inline void Log::debug(const String &str) {
-		println<LogLevel::DEBUG>(str);
+	inline void Log::debug(const args &...arg) {
+		println<LogLevel::DEBUG>(arg...);
 	}
 
 	template<typename ...args>
-	inline void Log::performance(const String &str) {
-		println<LogLevel::PERFORMANCE>(str);
+	inline void Log::performance(const args &...arg) {
+		println<LogLevel::PERFORMANCE>(arg...);
 	}
 
 	template<typename ...args>
-	inline void Log::warn(const String &str) {
-		println<LogLevel::ERROR>(str);
+	inline void Log::warn(const args &...arg) {
+		println<LogLevel::ERROR>(arg...);
 	}
 
 	template<typename ...args>
-	inline void Log::error(const String &str) {
-		println<LogLevel::ERROR>(str);
+	inline void Log::error(const args &...arg) {
+		println<LogLevel::ERROR>(arg...);
 	}
 
 	template<typename ...args>
-	inline void Log::fatal(const String &str) {
-		println<LogLevel::FATAL>(str);
+	inline void Log::fatal(const args &...arg) {
+		println<LogLevel::FATAL>(arg...);
 	}
 
 	//For full debugging; all fatal errors (and errors) will have origins in files
