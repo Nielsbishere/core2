@@ -8,6 +8,7 @@
 #include "utils/timer.hpp"
 #include <comdef.h>
 #include <Windows.h>
+#include <windowsx.h>
 #include <stdio.h>
 
 namespace oic {
@@ -262,6 +263,8 @@ namespace oic::windows {
 				if(data->header.hDevice)
 					if (auto *ptr = (WWindow *)GetWindowLongPtrA(hwnd, 0)) {
 
+						auto *vinterface = ptr->info->vinterface;
+
 						InputDevice *&dvc = ptr->devices[data->header.hDevice];
 
 						if (dvc->getType() == InputDevice::Type::KEYBOARD) {
@@ -282,13 +285,16 @@ namespace oic::windows {
 								bool pressed = dvc->getCurrentState(ButtonHandle(keyCode));
 								dvc->setState(ButtonHandle(keyCode), isKeyDown);
 
-								if (ptr->info->vinterface && pressed != isKeyDown) {
+								if(pressed != isKeyDown)
+									if (vinterface) {
 
-									if (isKeyDown)
-										ptr->info->vinterface->onInputActivate(ptr->info, dvc, InputDevice::Handle(keyCode));
-									else 
-										ptr->info->vinterface->onInputDeactivate(ptr->info, dvc, InputDevice::Handle(keyCode));
-								};
+										if (isKeyDown)
+											vinterface->onInputActivate(ptr->info, dvc, InputHandle(keyCode));
+										else 
+											vinterface->onInputDeactivate(ptr->info, dvc, InputHandle(keyCode));
+
+										vinterface->onInputUpdate(ptr->info, dvc, InputHandle(keyCode), isKeyDown);
+									};
 							}
 
 							return 0;
@@ -304,8 +310,10 @@ namespace oic::windows {
 									dvc->setPreviousState(ButtonHandle(i), dvc->getPreviousState(ButtonHandle(i)));
 									dvc->setState(ButtonHandle(i), true);
 
-									if(ptr->info->vinterface)
-										ptr->info->vinterface->onInputActivate(ptr->info, dvc, InputDevice::Handle(i));
+									if (vinterface) {
+										vinterface->onInputActivate(ptr->info, dvc, InputDevice::Handle(i));
+										vinterface->onInputUpdate(ptr->info, dvc, InputHandle(i), true);
+									}
 								}
 
 								else if (mouseDat.usButtonFlags & (2 << (i << 1))) {
@@ -313,14 +321,22 @@ namespace oic::windows {
 									dvc->setPreviousState(ButtonHandle(i), true);
 									dvc->setState(ButtonHandle(i), false);
 
-									if(ptr->info->vinterface)
-										ptr->info->vinterface->onInputDeactivate(ptr->info, dvc, InputDevice::Handle(i));
+									if (vinterface) {
+										vinterface->onInputDeactivate(ptr->info, dvc, InputDevice::Handle(i));
+										vinterface->onInputUpdate(ptr->info, dvc, InputHandle(i), false);
+									}
 								}
 
 							}
 
-							if (mouseDat.usButtonFlags & RI_MOUSE_WHEEL)
-								dvc->setAxis(MouseAxis::AXIS_WHEEL, i16(mouseDat.usButtonData) / f64(i16_MAX));
+							if (mouseDat.usButtonFlags & RI_MOUSE_WHEEL) {
+
+								f64 delta = i16(mouseDat.usButtonData) / f64(i16_MAX);
+								dvc->setAxis(MouseAxis::AXIS_WHEEL, delta);
+
+								if (vinterface)
+									vinterface->onInputUpdate(ptr->info, dvc, InputHandle(MouseAxis::AXIS_WHEEL) + MouseButton::count, delta != 0);
+							}
 
 							if (mouseDat.usFlags & MOUSE_MOVE_ABSOLUTE) {
 
@@ -331,16 +347,20 @@ namespace oic::windows {
 								dvc->setAxis(MouseAxis::AXIS_X, x);
 								dvc->setAxis(MouseAxis::AXIS_Y, y);
 
+								vinterface->onInputUpdate(ptr->info, dvc, InputHandle(MouseAxis::AXIS_DELTA_X) + MouseButton::count, mouseDat.lLastX != 0);
+								vinterface->onInputUpdate(ptr->info, dvc, InputHandle(MouseAxis::AXIS_DELTA_Y) + MouseButton::count, mouseDat.lLastY != 0);
+								vinterface->onInputUpdate(ptr->info, dvc, InputHandle(MouseAxis::AXIS_X) + MouseButton::count, false);
+								vinterface->onInputUpdate(ptr->info, dvc, InputHandle(MouseAxis::AXIS_Y) + MouseButton::count, false);
+
 							} else {
 
 								dvc->setAxis(MouseAxis::AXIS_DELTA_X, mouseDat.lLastX);
 								dvc->setAxis(MouseAxis::AXIS_DELTA_Y, mouseDat.lLastY);
 
-								POINT point;
-								GetCursorPos(&point);
-
-								dvc->setAxis(MouseAxis::AXIS_X, f64(point.x) - rect.left);
-								dvc->setAxis(MouseAxis::AXIS_Y, f64(point.y) - rect.top);
+								if (vinterface) {
+									vinterface->onInputUpdate(ptr->info, dvc, InputHandle(MouseAxis::AXIS_DELTA_X) + MouseButton::count, mouseDat.lLastX != 0);
+									vinterface->onInputUpdate(ptr->info, dvc, InputHandle(MouseAxis::AXIS_DELTA_Y) + MouseButton::count, mouseDat.lLastY != 0);
+								}
 							}
 						}
 
@@ -348,6 +368,33 @@ namespace oic::windows {
 
 				return DefRawInputProc(&data, 1, sizeof(*data));
 			}
+
+			case WM_MOUSEMOVE:
+
+				if (auto *ptr = (WWindow*)GetWindowLongPtrA(hwnd, 0)) {
+
+					for (auto device : ptr->devices) {
+
+						auto *dvc = device.second;
+
+						if (dvc->getType() != InputDevice::Type::MOUSE)
+							continue;
+
+						int x = GET_X_LPARAM(lParam); 
+						int y = GET_Y_LPARAM(lParam);
+
+						dvc->setAxis(MouseAxis::AXIS_X, f64(x));
+						dvc->setAxis(MouseAxis::AXIS_Y, f64(y));
+
+						if (auto *vinterface = ptr->info->vinterface) {
+							vinterface->onInputUpdate(ptr->info, dvc, InputHandle(MouseAxis::AXIS_X) + MouseButton::count, false);
+							vinterface->onInputUpdate(ptr->info, dvc, InputHandle(MouseAxis::AXIS_Y) + MouseButton::count, false);
+						}
+					}
+
+				}
+
+				break;
 
 			case WM_INPUT_DEVICE_CHANGE: {
 

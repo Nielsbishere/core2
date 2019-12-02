@@ -25,6 +25,7 @@ namespace oic {
 
 		virtual void onInputActivate(const ViewportInfo*, const InputDevice*, InputHandle) {}
 		virtual void onInputDeactivate(const ViewportInfo*, const InputDevice*, InputHandle) {}
+		virtual void onInputUpdate(const ViewportInfo*, const InputDevice*, InputHandle, bool) {}
 
 	};
 

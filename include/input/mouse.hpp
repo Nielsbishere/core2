@@ -11,6 +11,9 @@ namespace oic {
 		BUTTON_LEFT, BUTTON_RIGHT, BUTTON_MIDDLE, BUTTON_BACK, BUTTON_FORWARD
 	);
 
+	//Delta x/y is the relative position from the last cursor; this supports multiple mice
+	//X/y is the absolute position of the cursor; this only supports one mouse
+
 	oicExposedEnum(
 		MouseAxis, AxisHandle,
 		AXIS_X, AXIS_Y, AXIS_DELTA_X, AXIS_DELTA_Y, AXIS_WHEEL
