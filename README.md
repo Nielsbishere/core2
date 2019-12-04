@@ -1,4 +1,5 @@
 # Core v2
+![](https://github.com/Nielsbishere/core2/workflows/C%2FC++%20CI/badge.svg)
 
 ## Requirements
 
