@@ -6,7 +6,7 @@
 namespace oic {
 
 	InputDevice::InputDevice(Type type, ButtonHandle buttonCount, AxisHandle axisCount) :
-		type(type), buttonCount(buttonCount), axisCount(axisCount), buttonSize() {
+		buttonCount(buttonCount), axisCount(axisCount), buttonSize(), type(type) {
 
 		if (buttonCount) {
 			const usz allocationCount = usz(oic::Math::ceil(buttonCount / f64(usz_BITS >> 1)));

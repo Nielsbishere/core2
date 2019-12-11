@@ -12,7 +12,7 @@ namespace oic {
 			if (!ntdll)
 				oic::System::log()->fatal("Ntdll not found");
 
-			*((void**)&ntDelayExecution) = GetProcAddress(ntdll, "NtDelayExecution");
+			*((void**)&ntDelayExecution) = (void*) GetProcAddress(ntdll, "NtDelayExecution");
 
 			if (!ntDelayExecution)
 				oic::System::log()->fatal("Sleep function not found");

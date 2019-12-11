@@ -21,7 +21,7 @@ namespace oic::windows {
 	void print(const c8 *cstr, WORD color) {
 
 		//Get thread
-		DWORD thread = GetCurrentThreadId();
+		u32 thread = GetCurrentThreadId();
 
 		//Get time
 		time_t t {};
@@ -42,7 +42,7 @@ namespace oic::windows {
 		SetConsoleTextAttribute(handle, color);
 
 		//Print text
-		printf("[%u %02u:%02u:%02u.%06u]  %s", thread, timeInfo.tm_hour, timeInfo.tm_min, timeInfo.tm_sec, ns, cstr);
+		printf("[%u %02i:%02i:%02i.%06u] %s", thread, timeInfo.tm_hour, timeInfo.tm_min, timeInfo.tm_sec, ns, cstr);
 
 		if constexpr (outputToDebugConsole)
 			OutputDebugStringA(cstr);

@@ -310,12 +310,6 @@ namespace oic {
 		//!Remove a file
 		bool remove(FileHandle handle, bool isLocal);
 
-		//!The file access for the root nodes (and their children)
-		//fileAccess[isLocal]
-		//virtualAccess = fileAccess[0]
-		//localAccess = fileAccess[1]
-		Array<FileAccess, 2> fileAccess;
-
         //!File cache
         List<FileInfo> virtualFiles, localFiles;
 

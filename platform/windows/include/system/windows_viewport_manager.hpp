@@ -45,8 +45,8 @@ namespace oic::windows {
 
 		struct WViewportThreadData {
 			ViewportInfo *info;
-			std::mutex m;
-			std::condition_variable cv;
+			std::mutex m{};
+			std::condition_variable cv{};
 			bool ready = false;
 		};
 

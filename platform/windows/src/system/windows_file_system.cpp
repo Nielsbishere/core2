@@ -26,11 +26,7 @@ namespace oic {
 		thread.wait();
 	}
 
-	bool WFileSystem::readVirtual(const FileInfo &file, void *data, usz size, usz offset) const {
-		file;
-		data;
-		size;
-		offset;
+	bool WFileSystem::readVirtual(const FileInfo&, void*, usz, usz) const {
 		return false;		//TODO:
 	}
 

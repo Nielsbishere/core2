@@ -53,7 +53,7 @@ namespace oic {
 		}
 
 		//Platform and device dependent
-		bool isSupported(Handle handle) const;
+		bool isSupported(Handle handle) const final override ;
 	};
 
 }

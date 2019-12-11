@@ -53,7 +53,7 @@ namespace oic {
 		inline String nameByHandle(Handle id) const override final  { return Key::nameById<EnumNameFormat::LOWERCASE_SPACE>(id); }
 
 		//Platform and device dependent
-		bool isSupported(Handle handle) const;
+		bool isSupported(Handle handle) const final override;
 
 	};
 

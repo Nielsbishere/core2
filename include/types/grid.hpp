@@ -114,7 +114,7 @@ namespace oic {
 		~Grid2D() { delete[] data; data = nullptr; hw = {}; }
 
 		template<usz H, usz W, typename = std::enable_if_t<W != 0 && H != 0>>
-		Grid2D(const T(&dat)[H][W]) : data(new T[H*W]), hw{ H, W } {
+		Grid2D(const T(&dat)[H][W]) : hw{ H, W }, data(new T[H*W]) {
 			memcpy(data, dat, dataSize());
 		}
 

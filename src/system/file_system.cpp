@@ -25,8 +25,6 @@ namespace oic {
 	}
 
 	FileSystem::FileSystem(const Array<FileAccess, 2> &fileAccess): 
-		fileAccess(fileAccess),
-		virtualFileLut { { vroot, 0 } },
 		virtualFiles {
 			{
 				FileInfo{
@@ -37,7 +35,6 @@ namespace oic {
 				}
 			}
 		},
-		localFileLut{ { lroot, 0 } },
 		localFiles{
 			FileInfo{
 				lroot, lroot,
@@ -45,7 +42,9 @@ namespace oic {
 				fileAccess[true],
 				true
 			}
-		}
+		},
+		virtualFileLut { { vroot, 0 } },
+		localFileLut{ { lroot, 0 } }
 	{ }
 
 	//TODO: This can be "simplified" by a custom List class

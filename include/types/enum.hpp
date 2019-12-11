@@ -82,16 +82,10 @@ namespace oic {
 		static inline constexpr c8 formatChar(usz i, c8 c) {
 			return
 				c == '_' ? (format == EnumNameFormat::LOWERCASE_SPACE ? ' ' : '_') :
-				(i != 0 && format != EnumNameFormat::NO_FORMAT ?
 				(
-					c >= 'A' && c <= 'Z' ? c - 'A' + 'a' :
-					(
-						c >= 'À' && c <= 'Ý' ?
-						(c != '×' ? c - 'À' + 'à' : c) : c
-						)
-					)
-				 : c
-				 );
+					i != 0 && format != EnumNameFormat::NO_FORMAT ?
+					(c >= 'A' && c <= 'Z' ? c - 'A' + 'a' : c) : c
+				);
 		}
 
 	};
@@ -165,8 +159,8 @@ static constexpr auto _##EnumName##_getValues(){																	\
 		EnumType type;																								\
 		bool isInitialized;																							\
 																													\
-		constexpr Wrapper(EnumType type) : isInitialized(true), type(type) {}										\
-		constexpr Wrapper() : isInitialized(false), type() {}														\
+		constexpr Wrapper(EnumType type) : type(type), isInitialized(true) {}										\
+		constexpr Wrapper() : type(), isInitialized(false) {}														\
 																													\
 		constexpr operator EnumType() { return type; }																\
 																													\

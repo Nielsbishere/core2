@@ -88,7 +88,7 @@ namespace oic {
 	}
 	
 	template<usz base, typename T, typename>
-	static inline String Log::num(T val, usz minSize) {
+	inline String Log::num(T val, usz minSize) {
 
 		static_assert(base <= 64, "Only supported up to base64");
 

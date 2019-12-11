@@ -34,7 +34,7 @@ namespace oic::windows {
 			del(info);
 	}
 
-	WWindow::WWindow(ViewportInfo *info, HINSTANCE instance): hwnd(), running(false), info(info) {
+	WWindow::WWindow(ViewportInfo *info, HINSTANCE instance): info(info), hwnd(), running(false) {
 
 		WNDCLASSEX wc;
 		ZeroMemory(&wc, sizeof(wc));

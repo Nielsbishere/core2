@@ -5,7 +5,7 @@
 namespace oic {
 
 	System::System(LocalFileSystem *files_, Allocator *allocator_, ViewportManager *viewportManager_, Log *nativeLog):
-		files_(files_), allocator_(allocator_), viewportManager_(viewportManager_), nativeLog(nativeLog), log_(nativeLog) {
+		files_(files_), allocator_(allocator_), viewportManager_(viewportManager_), log_(nativeLog), nativeLog(nativeLog) {
 
 		if (!system)
 			system = this;
