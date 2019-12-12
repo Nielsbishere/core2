@@ -1,5 +1,6 @@
 #pragma once
 #include "types/types.hpp"
+#include "types/vec.hpp"
 #include <mutex>
 
 namespace oic {
@@ -23,8 +24,8 @@ namespace oic {
 		String name;
 
 		//Position hints of the current viewport
-		Vec2i offset;
-		Vec2u size;
+		Vec2i32 offset;
+		Vec2u32 size;
 		u32 layer;
 		
 		//The id of this viewport
@@ -43,8 +44,12 @@ namespace oic {
 		//Used for when communicating data to sync
 		std::mutex fence;
 
-		ViewportInfo(const String &name, Vec2i offset, Vec2u size, u32 layer, ViewportInterface *vinterface, Hint hint = NONE):
-			name(name), offset(offset), size(size), layer(layer), id(), hint(hint), vinterface(vinterface) {}
+		ViewportInfo(
+			const String &name, Vec2i32 offset, Vec2u32 size,
+			u32 layer, ViewportInterface *vinterface, Hint hint = NONE)
+			:
+			name(name), offset(offset), size(size), layer(layer),
+			id(), hint(hint), vinterface(vinterface) {}
 
 		ViewportInfo(ViewportInfo&&) = delete;
 		ViewportInfo &operator=(ViewportInfo&&) = delete;

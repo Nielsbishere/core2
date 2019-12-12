@@ -1,6 +1,8 @@
 cmake_minimum_required(VERSION 3.13.0)
 project(ocore)
 
+set_property(GLOBAL PROPERTY USE_FOLDERS ON)
+
 set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 set(CMAKE_CXX_EXTENSIONS OFF)
@@ -44,7 +46,7 @@ source_group("Platform Header Files" FILES ${platformHpp})
 source_group("Platform Source Files" FILES ${platformCpp})
 
 if(MSVC)
-    target_compile_options(ocore PRIVATE /W4 /WX /MD /MP)
+    target_compile_options(ocore PRIVATE /W4 /WX /MD /MP /wd4201)
 else()
     target_compile_options(ocore PRIVATE -Wall -Wextra -pedantic -Werror)
 endif()

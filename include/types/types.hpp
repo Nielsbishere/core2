@@ -1,20 +1,18 @@
 #pragma once
-#include <stdint.h>
+#include <cstdint>
 #include <limits>
 
 //Types
 
-using i8 = int8_t;
-using u8 = uint8_t;
+using i8  = std::int8_t;
+using u16 = std::uint16_t;
+using u32 = std::uint32_t;
+using u64 = std::uint64_t;
 
-using i16 = int16_t;
-using u16 = uint16_t;
-
-using i32 = int32_t;
-using u32 = uint32_t;
-
-using i64 = int64_t;
-using u64 = uint64_t;
+using u8  = std::uint8_t;
+using i16 = std::int16_t;
+using i32 = std::int32_t;
+using i64 = std::int64_t;
 
 using f32 = float;
 using f64 = double;
@@ -23,7 +21,8 @@ using c8 = char;
 using c16 = char16_t;
 using c32 = char32_t;
 
-using usz = size_t;
+using usz = std::size_t;
+using isz = std::ptrdiff_t;
 
 //Casts
 
@@ -40,6 +39,7 @@ constexpr u64 operator ""_u64(unsigned long long test) { return (u64)test; }
 constexpr i64 operator ""_i64(unsigned long long test) { return (i64)test; }
 
 constexpr usz operator ""_usz(unsigned long long test) { return (usz)test; }
+constexpr isz operator ""_isz(unsigned long long test) { return (isz)test; }
 
 constexpr f32 operator ""_f32(long double test) { return (f32)test; }
 constexpr f64 operator ""_f64(long double test) { return (f64)test; }
@@ -108,11 +108,15 @@ constexpr f64 f64_MIN = std::numeric_limits<f64>::min();
 constexpr f64 f64_MAX = std::numeric_limits<f64>::max();
 
 constexpr usz usz_BYTES = sizeof(usz);
+constexpr usz usz_BITS = usz_BYTES << 3;
+
+constexpr usz usz_MIN = 0;
+constexpr usz usz_MAX = usz(usz_BITS == 64 ? u64_MAX : u32_MAX);
+constexpr isz isz_MIN = isz(usz_BITS == 64 ? i64_MIN : i32_MIN);
+constexpr isz isz_MAX = isz(usz_BITS == 64 ? i64_MAX : i32_MAX);
+
 constexpr usz usz_BYTE_SHIFT = usz_BYTES == 8 ? 3 : 2;	//1 << usz_BYTE_SHIFT == usz_BYTES
 constexpr usz usz_BIT_SHIFT = usz_BYTES == 8 ? 6 : 5;	//1 << usz_BIT_SHIFT == usz_BYTES
-constexpr usz usz_BITS = usz_BYTES << 3;
-constexpr usz usz_MIN = 0;
-constexpr usz usz_MAX = usz(usz_BITS == 64 ? u64_MAX : u32_MAX);		//if usz is u32, will cut from u64_MAX to u32_MAX
 
 //GPU boolean
 
@@ -173,26 +177,6 @@ using HashMap = std::unordered_map<K, V>;
 
 template<usz siz>
 using Bitset = std::bitset<siz>;
-
-using Vec2u = Array<u32, 2>;
-using Vec3u = Array<u32, 3>;
-using Vec4u = Array<u32, 4>;
-
-using Vec2usz = Array<usz, 2>;
-using Vec3usz = Array<usz, 3>;
-using Vec4usz = Array<usz, 4>;
-
-using Vec2i = Array<i32, 2>;
-using Vec3i = Array<i32, 3>;
-using Vec4i = Array<i32, 4>;
-
-using Vec2f = Array<f32, 2>;
-using Vec3f = Array<f32, 3>;
-using Vec4f = Array<f32, 4>;
-
-using Vec2d = Array<f64, 2>;
-using Vec3d = Array<f64, 3>;
-using Vec4d = Array<f64, 4>;
 
 //Generate a signed version of the unsigned integer
 

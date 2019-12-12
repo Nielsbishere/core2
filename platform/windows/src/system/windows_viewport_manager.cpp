@@ -71,15 +71,15 @@ namespace oic::windows {
 				style |= WS_MINIMIZEBOX;
 		}
 
-		Vec2u maxSize = { u32(GetSystemMetrics(SM_CXSCREEN)), u32(GetSystemMetrics(SM_CYSCREEN)) };
+		Vec2u32 maxSize = { u32(GetSystemMetrics(SM_CXSCREEN)), u32(GetSystemMetrics(SM_CYSCREEN)) };
 
 		for (usz i = 0; i < 2; ++i)
-			if (info->size[i] == 0 || info->size[i] >= maxSize[i])
+			if (!info->size[i] || info->size[i] >= maxSize[i])
 				info->size[i] = maxSize[i];
 
 		hwnd = CreateWindowExA(
 			WS_EX_APPWINDOW, wc.lpszClassName, wc.lpszClassName, style,
-			info->offset[0], info->offset[1], info->size[0], info->size[1],
+			info->offset.x, info->offset.y, info->size.x, info->size.y,
 			NULL, NULL, instance, NULL
 		);
 
