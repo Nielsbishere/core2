@@ -45,7 +45,7 @@ namespace oic {
 		std::mutex fence;
 
 		ViewportInfo(
-			const String &name, Vec2i32 offset, Vec2u32 size,
+			const String &name, const Vec2i32 &offset, const Vec2u32 &size,
 			u32 layer, ViewportInterface *vinterface, Hint hint = NONE)
 			:
 			name(name), offset(offset), size(size), layer(layer),

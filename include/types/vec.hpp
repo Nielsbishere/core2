@@ -37,7 +37,7 @@ struct TVecStorage<T, 4> {
 };
 
 //Generic vector
-template<typename T, usz N, bool inherrited = true>
+template<typename T, usz N>
 struct Vec : public TVecStorage<T, N> {
 
 	using TVecStorage<T, N>::TVecStorage;
@@ -452,21 +452,21 @@ struct Vec : public TVecStorage<T, N> {
 //Vec2 (TVec<T,2> with extra functionality)
 
 template<typename T>
-struct Vec<T, 2, true> : public Vec<T, 2, false> {
+struct Vec2 : public Vec<T, 2> {
 
-	using Vec<T, 2, false>::Vec;
+	using Vec<T, 2>::Vec;
 	using TVecStorage<T, 2>::x;
 	using TVecStorage<T, 2>::y;
 
-	constexpr inline Vec swap() const { return { y, x }; }
-	constexpr inline Vec yx() const { return { y, x }; }
+	constexpr inline Vec2 swap() const { return { y, x }; }
+	constexpr inline Vec2 yx() const { return { y, x }; }
 	constexpr inline T aspect() const { return x / y; }
 
-	constexpr inline T cross(const Vec &other) const {
+	constexpr inline T cross(const Vec2 &other) const {
 		return x * other.y - y * other.x;
 	}
 
-	constexpr inline Vec reflect(const Vec &normal) const {
+	constexpr inline Vec2 reflect(const Vec2 &normal) const {
 		return operator-(normal * (dot(normal) * 2));
 	}
 
@@ -475,20 +475,20 @@ struct Vec<T, 2, true> : public Vec<T, 2, false> {
 //Vec3 (TVec<T,3> with extra functionality)
 
 template<typename T>
-struct Vec<T, 3, true> : public Vec<T, 3, false> {
+struct Vec3 : public Vec<T, 3> {
 
-	using Vec<T, 3, false>::Vec;
+	using Vec<T, 3>::Vec;
 	using TVecStorage<T, 3>::x;
 	using TVecStorage<T, 3>::y;
 	using TVecStorage<T, 3>::z;
 
-	constexpr inline Vec yxz() const { return { y, x, z }; }
-	constexpr inline Vec yzx() const { return { y, z, x }; }
-	constexpr inline Vec zyx() const { return { z, y, x }; }
-	constexpr inline Vec zxy() const { return { z, x, y }; }
-	constexpr inline Vec xzy() const { return { x, z, y }; }
+	constexpr inline Vec3 yxz() const { return { y, x, z }; }
+	constexpr inline Vec3 yzx() const { return { y, z, x }; }
+	constexpr inline Vec3 zyx() const { return { z, y, x }; }
+	constexpr inline Vec3 zxy() const { return { z, x, y }; }
+	constexpr inline Vec3 xzy() const { return { x, z, y }; }
 
-	constexpr inline T cross(const Vec &other) const {
+	constexpr inline T cross(const Vec3 &other) const {
 		return {
 			y * other.z - z * other.y,
 			z * other.x - x * other.z,
@@ -496,7 +496,7 @@ struct Vec<T, 3, true> : public Vec<T, 3, false> {
 		};
 	}
 
-	constexpr inline Vec reflect(const Vec &normal) const {
+	constexpr inline Vec3 reflect(const Vec3 &normal) const {
 		return operator-(normal * (dot(normal) * 2));
 	}
 
@@ -505,48 +505,44 @@ struct Vec<T, 3, true> : public Vec<T, 3, false> {
 //Vec4 (TVec<T,4> with extra functionality)
 
 template<typename T>
-struct Vec<T, 4, true> : public Vec<T, 4, false> {
+struct Vec4 : public Vec<T, 4> {
 
-	using Vec<T, 4, false>::Vec;
+	using Vec<T, 4>::Vec;
 	using TVecStorage<T, 4>::x;
 	using TVecStorage<T, 4>::y;
 	using TVecStorage<T, 4>::z;
 	using TVecStorage<T, 4>::w;
 
-	constexpr inline Vec yxzw() const { return { y, x, z, w }; }
-	constexpr inline Vec yzxw() const { return { y, z, x, w }; }
-	constexpr inline Vec zyxw() const { return { z, y, x, w }; }
-	constexpr inline Vec zxyw() const { return { z, x, y, w }; }
-	constexpr inline Vec xzyw() const { return { x, z, y, w }; }
+	constexpr inline Vec4 yxzw() const { return { y, x, z, w }; }
+	constexpr inline Vec4 yzxw() const { return { y, z, x, w }; }
+	constexpr inline Vec4 zyxw() const { return { z, y, x, w }; }
+	constexpr inline Vec4 zxyw() const { return { z, x, y, w }; }
+	constexpr inline Vec4 xzyw() const { return { x, z, y, w }; }
 
-	constexpr inline Vec yxwz() const { return { y, x, w, z }; }
-	constexpr inline Vec yzwx() const { return { y, z, w, x }; }
-	constexpr inline Vec zywx() const { return { z, y, w, x }; }
-	constexpr inline Vec zxwy() const { return { z, x, w, y }; }
-	constexpr inline Vec xzwy() const { return { x, z, w, y }; }
-	constexpr inline Vec xywz() const { return { x, y, w, z }; }
+	constexpr inline Vec4 yxwz() const { return { y, x, w, z }; }
+	constexpr inline Vec4 yzwx() const { return { y, z, w, x }; }
+	constexpr inline Vec4 zywx() const { return { z, y, w, x }; }
+	constexpr inline Vec4 zxwy() const { return { z, x, w, y }; }
+	constexpr inline Vec4 xzwy() const { return { x, z, w, y }; }
+	constexpr inline Vec4 xywz() const { return { x, y, w, z }; }
 
-	constexpr inline Vec ywxz() const { return { y, w, x, z }; }
-	constexpr inline Vec ywzx() const { return { y, w, z, x }; }
-	constexpr inline Vec zwyx() const { return { z, w, y, x }; }
-	constexpr inline Vec zwxy() const { return { z, w, x, y }; }
-	constexpr inline Vec xwzy() const { return { x, w, z, y }; }
-	constexpr inline Vec xwyz() const { return { x, w, y, z }; }
+	constexpr inline Vec4 ywxz() const { return { y, w, x, z }; }
+	constexpr inline Vec4 ywzx() const { return { y, w, z, x }; }
+	constexpr inline Vec4 zwyx() const { return { z, w, y, x }; }
+	constexpr inline Vec4 zwxy() const { return { z, w, x, y }; }
+	constexpr inline Vec4 xwzy() const { return { x, w, z, y }; }
+	constexpr inline Vec4 xwyz() const { return { x, w, y, z }; }
 
-	constexpr inline Vec wyxz() const { return { w, y, x, z }; }
-	constexpr inline Vec wyzx() const { return { w, y, z, x }; }
-	constexpr inline Vec wzyx() const { return { w, z, y, x }; }
-	constexpr inline Vec wzxy() const { return { w, z, x, y }; }
-	constexpr inline Vec wxzy() const { return { w, x, z, y }; }
-	constexpr inline Vec wxyz() const { return { w, x, y, z }; }
+	constexpr inline Vec4 wyxz() const { return { w, y, x, z }; }
+	constexpr inline Vec4 wyzx() const { return { w, y, z, x }; }
+	constexpr inline Vec4 wzyx() const { return { w, z, y, x }; }
+	constexpr inline Vec4 wzxy() const { return { w, z, x, y }; }
+	constexpr inline Vec4 wxzy() const { return { w, x, z, y }; }
+	constexpr inline Vec4 wxyz() const { return { w, x, y, z }; }
 
 };
 
 //Type definitions
-
-template<typename T> using Vec2 = Vec<T, 2>;
-template<typename T> using Vec3 = Vec<T, 3>;
-template<typename T> using Vec4 = Vec<T, 4>;
 
 using Vec2u8  = Vec2<u8>;
 using Vec2u16 = Vec2<u16>;

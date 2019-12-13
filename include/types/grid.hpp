@@ -80,7 +80,7 @@ namespace oic {
 			return *this;
 		}
 
-		inline T &operator[](usz i)				{ return data[i]; }
+		inline T &operator[](usz i)	{ return data[i]; }
 		inline const T &operator[](usz i) const { return data[i]; }
 
 		inline Buffer buffer() const { return Buffer((u8*)begin(), (u8*)end()); }
@@ -168,7 +168,7 @@ namespace oic {
 			return yx[0] * hw[1] + yx[1];
 		}
 
-		inline T &operator[](const Vec2usz &yx)				{ return data[linearIndex(yx)]; }
+		inline T &operator[](const Vec2usz &yx) { return data[linearIndex(yx)]; }
 		inline const T &operator[](const Vec2usz &yx) const	{ return data[linearIndex(yx)]; }
 
 		inline Buffer buffer() const { return Buffer((u8*)begin(), (u8*)end()); }
@@ -260,8 +260,8 @@ namespace oic {
 			return zyx[0] * lhw[1] * lhw[2] + zyx[1] * lhw[2] + zyx[2];
 		}
 
-		inline T &operator[](const Vec3usz &zyx)			{ return data[linearIndex(zyx)]; }
-		inline const T &operator[](const Vec3usz &zyx) const{ return data[linearIndex(zyx)]; }
+		inline T &operator[](const Vec3usz &zyx) { return data[linearIndex(zyx)]; }
+		inline const T &operator[](const Vec3usz &zyx) const { return data[linearIndex(zyx)]; }
 
 		inline Buffer buffer() const { return Buffer((u8*)begin(), (u8*)end()); }
 	};
