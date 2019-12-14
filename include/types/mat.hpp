@@ -252,7 +252,10 @@ struct TMatHelper {
 template<typename T>
 struct Mat2x2 : public Mat<T, 2, 2> {
 
-	using Mat<T, 4, 4>::Mat;
+	using Mat<T, 2, 2>::Mat;
+
+	constexpr inline Mat2x2(const Mat<T, 2, 2> &dat) : Mat<T, 2, 2>(dat) {}
+	constexpr inline Mat2x2(Mat<T, 2, 2> &&dat) : Mat<T, 2, 2>(dat) {}
 
 	//Rotate z
 	static constexpr inline Mat2x2 rotateZ(T v) { return TMatHelper<Mat2x2, T>::rotateZ(v); }
@@ -273,7 +276,10 @@ struct Mat2x2 : public Mat<T, 2, 2> {
 template<typename T>
 struct Mat3x3 : public Mat<T, 3, 3> {
 
-	using Mat<T, 4, 4>::Mat;
+	using Mat<T, 3, 3>::Mat;
+
+	constexpr inline Mat3x3(const Mat<T, 3, 3> &dat) : Mat<T, 3, 3>(dat) {}
+	constexpr inline Mat3x3(Mat<T, 3, 3> &&dat) : Mat<T, 3, 3>(dat) {}
 
 	//TODO: rotateY3D, rotateZ3D, translate2D, transform2D, orientation3D, perspective/ortho
 
@@ -299,6 +305,9 @@ struct Mat4x4 : public Mat<T, 4, 4> {
 
 	using Mat<T, 4, 4>::Mat;
 
+	constexpr inline Mat4x4(const Mat<T, 4, 4> &dat) : Mat<T, 4, 4>(dat) {}
+	constexpr inline Mat4x4(Mat<T, 4, 4> &&dat) : Mat<T, 4, 4>(dat) {}
+
 	//Rotate z
 	static constexpr inline Mat4x4 rotateZ(T v) { return TMatHelper<Mat4x4, T>::rotateZ(v); }
 
@@ -313,7 +322,7 @@ struct Mat4x4 : public Mat<T, 4, 4> {
 	static inline Mat4x4 perspective(T fov, T asp, T n, T f) {
 
 		static_assert(
-			std::is_floating_point_v<typename Mat::Type>, 
+			std::is_floating_point_v<T>, 
 			"Can't call Mat4x4<T>::perspective if T isn't a floating point"
 		);
 
@@ -347,17 +356,32 @@ struct Mat4x4 : public Mat<T, 4, 4> {
 		return translate(-pos) * rotate(rot);
 	}
 
-	static constexpr inline Mat4x4 lookat(
+	static constexpr inline Mat4x4 lookAt(
 		const Vec3<T> &eye, const Vec3<T> &center, const Vec3<T> &up
 	) {
-		Vec3<T> &z = (eye - center).normalize();
-		Vec3<T> &x = (up.cross(z)).normalize();
-		Vec3<T> &y = (z.cross(x)).normalize();
+		Vec3<T> z = (eye - center).normalize();
+		Vec3<T> x = (up.cross(z)).normalize();
+		Vec3<T> y = (z.cross(x)).normalize();
 
 		Mat4x4 res;
 		res.x = x;
 		res.y = y;
-		res.z = x;
+		res.z = z;
+		res.pos = -eye; res.one = 1;
+		return res;
+	}
+
+	static constexpr inline Mat4x4 lookDirection(
+		const Vec3<T> &eye, const Vec3<T> &dir, const Vec3<T> &up
+	) {
+		Vec3<T> z = dir.normalize();
+		Vec3<T> x = (up.cross(z)).normalize();
+		Vec3<T> y = (z.cross(x)).normalize();
+
+		Mat4x4 res;
+		res.x = x;
+		res.y = y;
+		res.z = z;
 		res.pos = -eye; res.one = 1;
 		return res;
 	}

@@ -18,7 +18,7 @@ namespace oic {
 
 	public:
 
-		enum class Type : u8 {
+		enum Type : u8 {
 
 			MOUSE,			//Devices that can send axes and button and have a cursor
 			KEYBOARD,		//Devices that send keys
@@ -70,6 +70,7 @@ namespace oic {
 
 		inline Type getType() const { return type; }
 		inline void pushUpdate();
+		inline bool isType(Type t) const { return type == t; }
 
 		inline Handle getButtonStart() const { return 0; }
 		inline Handle getButtonEnd() const { return buttonCount; }
@@ -87,9 +88,14 @@ namespace oic {
 		//0x0 = up, 0x1 = pressed, 0x2 = released, 0x3 = down
 		inline usz getState(Handle handle) const;
 
-		virtual Handle handleByName(const String &name) const = 0;	//Get a human readable name as a handle (returns getAxisEnd() if invalid)
-		virtual String nameByHandle(Handle handle) const = 0;		//Get a handle as a human readable name
-		virtual bool isSupported(Handle handle) const = 0;			//If a handle is supported on the current device; if not, it will always be on 0
+		//Get a human readable name as a handle (returns getAxisEnd() if invalid)
+		virtual Handle handleByName(const String &name) const = 0;
+
+		//Get a handle as a human readable name
+		virtual String nameByHandle(Handle handle) const = 0;
+
+		//If a handle is supported on the current device; if not, it will always be on 0
+		virtual bool isSupported(Handle handle) const = 0;
 
 	protected:
 

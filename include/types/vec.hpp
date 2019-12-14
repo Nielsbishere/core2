@@ -132,13 +132,13 @@ struct Vec : public TVecStorage<T, N> {
 	//Math functions
 	
 	constexpr inline T sum() const {
-		T v;
+		T v{};
 		for (usz i = 0; i < N; ++i) v += arr[i];
 		return v;
 	}
 	
 	constexpr inline T squaredMagnitude() const {
-		T v;
+		T v{};
 		for (usz i = 0; i < N; ++i) v += arr[i] * arr[i];
 		return v;
 	}
@@ -458,6 +458,9 @@ struct Vec2 : public Vec<T, 2> {
 	using TVecStorage<T, 2>::x;
 	using TVecStorage<T, 2>::y;
 
+	constexpr inline Vec2(const Vec<T, 2> &dat) : Vec<T, 2>(dat) {}
+	constexpr inline Vec2(Vec<T, 2> &&dat) : Vec<T, 2>(dat) {}
+
 	constexpr inline Vec2 swap() const { return { y, x }; }
 	constexpr inline Vec2 yx() const { return { y, x }; }
 	constexpr inline T aspect() const { return x / y; }
@@ -482,13 +485,16 @@ struct Vec3 : public Vec<T, 3> {
 	using TVecStorage<T, 3>::y;
 	using TVecStorage<T, 3>::z;
 
+	constexpr inline Vec3(const Vec<T, 3> &dat) : Vec<T, 3>(dat) {}
+	constexpr inline Vec3(Vec<T, 3> &&dat) : Vec<T, 3>(dat) {}
+
 	constexpr inline Vec3 yxz() const { return { y, x, z }; }
 	constexpr inline Vec3 yzx() const { return { y, z, x }; }
 	constexpr inline Vec3 zyx() const { return { z, y, x }; }
 	constexpr inline Vec3 zxy() const { return { z, x, y }; }
 	constexpr inline Vec3 xzy() const { return { x, z, y }; }
 
-	constexpr inline T cross(const Vec3 &other) const {
+	constexpr inline Vec3 cross(const Vec3 &other) const {
 		return {
 			y * other.z - z * other.y,
 			z * other.x - x * other.z,
@@ -512,6 +518,9 @@ struct Vec4 : public Vec<T, 4> {
 	using TVecStorage<T, 4>::y;
 	using TVecStorage<T, 4>::z;
 	using TVecStorage<T, 4>::w;
+
+	constexpr inline Vec4(const Vec<T, 4> &dat) : Vec<T, 4>(dat) {}
+	constexpr inline Vec4(Vec<T, 4> &&dat) : Vec<T, 4>(dat) {}
 
 	constexpr inline Vec4 yxzw() const { return { y, x, z, w }; }
 	constexpr inline Vec4 yzxw() const { return { y, z, x, w }; }
