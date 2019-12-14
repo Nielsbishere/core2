@@ -64,8 +64,6 @@ struct Vec : public TVecStorage<T, N> {
 		static_assert(sizeof...(args) + 1 <= N, "Invalid number of initializers for Vec");
 	}
 
-	inline operator Buffer() const { return Buffer((u8*)arr, (u8*)(arr + N)); }
-	
 	//Arithmetic functions
 	
 	constexpr inline Vec(const T &t) {
@@ -327,19 +325,13 @@ struct Vec : public TVecStorage<T, N> {
 	}
 	
 	constexpr inline Vec radToDeg() const {
-	
 		static_assert(std::is_floating_point_v<T>, "Vec<T,N>::radToDeg only exists on floating points");
-	
-		constexpr Vec rtd = T(180 / 3.141592653589793);
-		return operator*(rtd);
+		return operator*(TO_DEG);
 	}
 	
 	constexpr inline Vec degToRad() const {
-	
 		static_assert(std::is_floating_point_v<T>, "Vec<T,N>::degToRad only exists on floating points");
-	
-		constexpr Vec dtr = Vec(3.141592653589793 / 180);
-		return operator*(dtr);
+		return operator*(TO_RAD);
 	}
 	
 	//Bitwise operator
@@ -445,6 +437,14 @@ struct Vec : public TVecStorage<T, N> {
 		Vec res;
 		for (usz i = 0; i < N; ++i) res.arr[i] = T(arr[i] <= other.arr[i]);
 		return res;
+	}
+
+	inline Buffer toData() const {
+		return Buffer((u8*)arr, (u8*)(arr + N));
+	}
+
+	inline Buffer toGPUData() const {
+		return toData();
 	}
 
 };

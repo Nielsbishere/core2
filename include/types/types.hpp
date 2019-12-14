@@ -24,6 +24,10 @@ using c32 = char32_t;
 using usz = std::size_t;
 using isz = std::ptrdiff_t;
 
+static constexpr f64 PI_CONST = 3.141592653589793;
+static constexpr f64 TO_DEG = 180 / PI_CONST;
+static constexpr f64 TO_RAD = PI_CONST / 180;
+
 //Casts
 
 constexpr u8 operator ""_u8(unsigned long long test) { return (u8)test; }
@@ -72,6 +76,14 @@ constexpr usz operator ""_K(unsigned long long test) { return (usz)test * 1'000;
 constexpr usz operator ""_M(unsigned long long test) { return (usz)test * 1'000'000; }
 constexpr usz operator ""_B(unsigned long long test) { return (usz)test * 1'000'000'000; }
 
+//Conversion to radians from degrees
+constexpr f64 operator ""_deg(long double test) { return f64(test * TO_RAD); }
+constexpr f64 operator ""_deg(unsigned long long test) { return i64(test) * TO_RAD; }
+
+//Conversion to degrees from radians
+constexpr f64 operator ""_rad(long double test) { return f64(test * TO_DEG); }
+constexpr f64 operator ""_rad(unsigned long long test) { return i64(test) * TO_DEG; }
+
 //Time
 
 constexpr u64 operator ""_d(unsigned long long test) { return test * 8'640'000'000'000; }	//days to ns
@@ -117,23 +129,6 @@ constexpr isz isz_MAX = isz(usz_BITS == 64 ? i64_MAX : i32_MAX);
 
 constexpr usz usz_BYTE_SHIFT = usz_BYTES == 8 ? 3 : 2;	//1 << usz_BYTE_SHIFT == usz_BYTES
 constexpr usz usz_BIT_SHIFT = usz_BYTES == 8 ? 6 : 5;	//1 << usz_BIT_SHIFT == usz_BYTES
-
-//GPU boolean
-
-class gbool {
-
-public:
-
-	gbool(u32 val) : val(val) {}
-	gbool(bool b = false) : val(b) {}
-
-	operator bool() { return val != 0U; }
-
-private:
-
-	u32 val;
-
-};
 
 //Handling proper pointer destruction (prefer over delete)
 
