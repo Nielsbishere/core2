@@ -52,6 +52,11 @@ namespace oic {
 			return a >= b ? a : b;
 		}
 
+		template<typename T, typename = std::enable_if_t<std::is_arithmetic_v<T>>>
+		static constexpr inline T clamp(T v, T a, T b) {
+			return v < a ? a : (v > b ? b : v);
+		}
+
 		template<typename T, typename = std::enable_if_t<std::is_floating_point_v<T>>>
 		static inline T log(T v) {
 			return T(std::log10(v));

@@ -331,7 +331,7 @@ namespace oic::windows {
 
 							if (mouseDat.usButtonFlags & RI_MOUSE_WHEEL) {
 
-								f64 delta = i16(mouseDat.usButtonData) / f64(i16_MAX);
+								f64 delta = i16(mouseDat.usButtonData);
 								dvc->setAxis(MouseAxis::AXIS_WHEEL, delta);
 
 								if (vinterface)
