@@ -319,7 +319,7 @@ struct Mat4x4 : public Mat<T, 4, 4> {
 		return res;
 	}
 
-	static inline Mat4x4 perspective(T fov, T asp, T n, T f) {
+	static inline Mat4x4 perspective(T fov, T asp, T n) {
 
 		static_assert(
 			std::is_floating_point_v<T>, 
@@ -329,11 +329,11 @@ struct Mat4x4 : public Mat<T, 4, 4> {
 		T scale = T(1 / tan(fov / 2));
 
 		Mat4x4 res(
-			Vec4<T>(scale / asp, scale, -((f + n) / (f - n)), 0)
+			Vec4<T>(scale / asp, -scale, 0, 0)
 		);
 
 		res.m[2][3] = -1;
-		res.m[3][2] = -(2 * f * n / (f - n));
+		res.m[3][2] = 2 * n;
 		return res;
 	}
 
