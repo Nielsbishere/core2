@@ -116,8 +116,8 @@ struct Mat : public TMatStorage<T, W, H> {
 	static constexpr usz horizontal() { return W; }
 	static constexpr usz vertical() { return H; }
 
-	Horizontal &operator[](const usz y) { return axes[y]; }
-	const Horizontal &operator[](const usz y) const { return axes[y]; }
+	Horizontal &operator[](const usz h) { return axes[h]; }
+	const Horizontal &operator[](const usz h) const { return axes[h]; }
 
 	T &operator[](const Vec2usz &xy) { return m[xy.y][xy.x]; }
 	const T &operator[](const Vec2usz &xy) const { return axes[xy.y][xy.x]; }
