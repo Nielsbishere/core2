@@ -144,8 +144,6 @@ namespace oic::windows {
 		MSG msg, *msgp = &msg;
 		bool quit = false;
 
-		ns last{};
-
 		while (w->running) {
 
 			while (GetMessageA(msgp, w->hwnd, 0U, 0U)) {
@@ -167,30 +165,6 @@ namespace oic::windows {
 				//Exit called from current thread
 				if (msg.hwnd == NULL)
 					break;
-
-				//Update interface
-
-				ns now = oic::Timer::now();
-
-				if (w->info->vinterface)
-					w->info->vinterface->update(w->info, last ? (now - last) / 1'000'000'000.0 : 0);
-
-				last = oic::Timer::now();
-
-				//Update input
-
-				for (auto dvc : w->info->devices) {
-
-					for (ButtonHandle i = 0, j = ButtonHandle(dvc->getButtonCount()); i < j; ++i)
-						if (dvc->getState(i) == 0x2 /* released */)
-							dvc->setPreviousState(i, false);
-						else if (dvc->getState(i) == 0x1 /* pressed */)
-							dvc->setPreviousState(i, true);
-
-					for (AxisHandle i = 0, j = dvc->getAxisCount(); i < j; ++i)
-						dvc->setPreviousAxis(i, dvc->getCurrentAxis(i));
-				}
-
 			}
 		}
 
@@ -457,8 +431,34 @@ namespace oic::windows {
 
 				if (auto *ptr = (WWindow*)GetWindowLongPtrA(hwnd, 0)) {
 
-					if (ptr->running && ptr->info->vinterface)
-						ptr->info->vinterface->render(ptr->info);
+					//Update interface
+
+					ns now = oic::Timer::now();
+					auto *info = ptr->info;
+
+					if (info->vinterface) {
+						f64 dt = ptr->last ? (now - ptr->last) / 1'000'000'000.0 : 0;
+						info->vinterface->update(info, dt);
+					}
+
+					ptr->last = oic::Timer::now();
+
+					//Update input
+
+					for (auto dvc : info->devices) {
+
+						for (ButtonHandle i = 0, j = ButtonHandle(dvc->getButtonCount()); i < j; ++i)
+							if (dvc->getState(i) == 0x2 /* released */)
+								dvc->setPreviousState(i, false);
+							else if (dvc->getState(i) == 0x1 /* pressed */)
+								dvc->setPreviousState(i, true);
+
+						for (AxisHandle i = 0, j = dvc->getAxisCount(); i < j; ++i)
+							dvc->setPreviousAxis(i, dvc->getCurrentAxis(i));
+					}
+
+					if (ptr->running && (info->size.neq(0)).all() && info->vinterface)
+						info->vinterface->render(info);
 				}
 
 				return NULL;

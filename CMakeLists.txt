@@ -45,8 +45,30 @@ source_group("Source Files" FILES ${ocoreCpp})
 source_group("Platform Header Files" FILES ${platformHpp})
 source_group("Platform Source Files" FILES ${platformCpp})
 
-if(MSVC)
-    target_compile_options(ocore PRIVATE /W4 /WX /MD /MP /wd4201)
+if(${CMAKE_SYSTEM_PROCESSOR} MATCHES "arm")
+	set(ARM true)
 else()
-    target_compile_options(ocore PRIVATE -Wall -Wextra -pedantic -Werror)
+	add_definitions(-D__SSE__)
+	add_definitions(-D__SSE2__)
+	add_definitions(-D__SSE3__)
+	add_definitions(-D__SSSE3__)
+	add_definitions(-D__SSE4_1__)
+endif()
+
+if(MSVC)
+
+    target_compile_options(ocore PRIVATE /W4 /WX /MD /MP /wd4201 /EHsc /GR)
+
+	if(NOT ${ARM})
+		target_compile_options(ocore PUBLIC /arch:SSE4.1)
+	endif()
+
+else()
+
+    target_compile_options(ocore PRIVATE -Wall -Wpedantic -Wextra -Werror)
+
+	if(NOT ${ARM})
+		target_compile_options(ocore PUBLIC -msse4.1)
+	endif()
+
 endif()

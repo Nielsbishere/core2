@@ -20,6 +20,8 @@ namespace oic::windows {
 		bool running;
 		std::future<void> thr;
 
+		ns last{};
+
 		HashMap<HANDLE, InputDevice*> devices;
 
 		WWindow(ViewportInfo *info, HINSTANCE instance);

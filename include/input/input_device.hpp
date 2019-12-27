@@ -112,22 +112,23 @@ namespace oic {
 		u16 buttonSize;		//Size in usz
 		Type type;
 
+		static constexpr usz mask = (1 << (usz_BIT_SHIFT - 1)) - 1;
 	};
 
 	inline void InputDevice::setState(ButtonHandle handle, bool b) {
 
 		if (!b)
-			buttons[handle >> (usz_BIT_SHIFT - 1)] &= ~(1_usz << (handle << 1_usz));
+			buttons[handle >> (usz_BIT_SHIFT - 1)] &= ~(1_usz << ((handle & mask) << 1_usz));
 		else
-			buttons[handle >> (usz_BIT_SHIFT - 1)] |= 1_usz << (handle << 1_usz);
+			buttons[handle >> (usz_BIT_SHIFT - 1)] |= 1_usz << ((handle & mask) << 1_usz);
 	}
 
 	inline void InputDevice::setPreviousState(ButtonHandle handle, bool b) {
 
 		if (!b)
-			buttons[handle >> (usz_BIT_SHIFT - 1)] &= ~(2_usz << (handle << 1_usz));
+			buttons[handle >> (usz_BIT_SHIFT - 1)] &= ~(2_usz << ((handle & mask) << 1_usz));
 		else
-			buttons[handle >> (usz_BIT_SHIFT - 1)] |= 2_usz << (handle << 1_usz);
+			buttons[handle >> (usz_BIT_SHIFT - 1)] |= 2_usz << ((handle & mask) << 1_usz);
 	}
 
 	inline void InputDevice::setAxis(AxisHandle handle, f64 v) {
@@ -139,11 +140,11 @@ namespace oic {
 	}
 
 	inline bool InputDevice::getCurrentState(ButtonHandle handle) const {
-		return buttons[handle >> (usz_BIT_SHIFT - 1)] & (1_usz << (handle << 1_usz));
+		return buttons[handle >> (usz_BIT_SHIFT - 1)] & (1_usz << ((handle & mask) << 1_usz));
 	}
 
 	inline bool InputDevice::getPreviousState(ButtonHandle handle) const {
-		return buttons[handle >> (usz_BIT_SHIFT - 1)] & (2_usz << (handle << 1_usz));
+		return buttons[handle >> (usz_BIT_SHIFT - 1)] & (2_usz << ((handle & mask) << 1_usz));
 	}
 
 	inline f64 InputDevice::getCurrentAxis(AxisHandle handle) const {
@@ -161,7 +162,7 @@ namespace oic {
 	inline usz InputDevice::getState(Handle handle) const {
 
 		if(handle < buttonCount)
-			return (buttons[handle >> (usz_BIT_SHIFT - 1)] >> (handle << 1)) & 0x3;
+			return (buttons[handle >> (usz_BIT_SHIFT - 1)] >> ((handle & mask) << 1)) & 0x3;
 
 		handle -= buttonCount;
 		return usz(collapseAxis(axes[usz(handle) << 1])) | (usz(collapseAxis(axes[(usz(handle) << 1) + 1])) << 1);
