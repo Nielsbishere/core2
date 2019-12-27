@@ -116,54 +116,56 @@ struct Mat : public TMatStorage<T, W, H> {
 	static constexpr usz horizontal() { return W; }
 	static constexpr usz vertical() { return H; }
 
-	Horizontal &operator[](const usz h) { return axes[h]; }
-	const Horizontal &operator[](const usz h) const { return axes[h]; }
+	Vertical &operator[](const usz x) { return axes[x]; }
+	constexpr const Vertical &operator[](const usz x) const { return axes[x]; }
 
-	T &operator[](const Vec2usz &xy) { return m[xy.y][xy.x]; }
-	const T &operator[](const Vec2usz &xy) const { return axes[xy.y][xy.x]; }
+	T &operator[](const Vec2usz &xy) { return m[xy.x][xy.y]; }
+	constexpr const T &operator[](const Vec2usz &xy) const { return axes[xy.x][xy.y]; }
 
-	Vertical getVertical(const usz x) const {
+	constexpr Horizontal getHorizontal(const usz y) const {
 		Vertical res;
-		for (usz i = 0; i < W; ++i) res[i] = m[i][x];
+		for (usz i = 0; i < W; ++i) res[i] = m[i][y];
 		return res;
 	}
 
+	constexpr const Vertical &getVertical(const usz x) const { return axes[x]; }
+
 	//Arithmetic overloads
 
-	Mat &operator+=(const Mat &other) {
-		for (usz i = 0; i < H; ++i) axes[i] += other.axes[i];
+	constexpr Mat &operator+=(const Mat &other) {
+		for (usz i = 0; i < W; ++i) axes[i] += other.axes[i];
 		return *this;
 	}
 
-	Mat &operator-=(const Mat &other) {
-		for (usz i = 0; i < H; ++i) axes[i] -= other.axes[i];
+	constexpr Mat &operator-=(const Mat &other) {
+		for (usz i = 0; i < W; ++i) axes[i] -= other.axes[i];
 		return *this;
 	}
 
-	Mat &operator/=(const Mat &other) {
-		for (usz i = 0; i < H; ++i) axes[i] /= other.axes[i];
+	constexpr Mat &operator/=(const Mat &other) {
+		for (usz i = 0; i < W; ++i) axes[i] /= other.axes[i];
 		return *this;
 	}
 
-	Mat &operator%=(const Mat &other) {
-		for (usz i = 0; i < H; ++i) axes[i] %= other.axes[i];
+	constexpr Mat &operator%=(const Mat &other) {
+		for (usz i = 0; i < W; ++i) axes[i] %= other.axes[i];
 		return *this;
 	}
 
-	Mat operator+(const Mat &other) const { return Mat(*this) += other; }
-	Mat operator-(const Mat &other) const { return Mat(*this) -= other; }
-	Mat operator/(const Mat &other) const { return Mat(*this) /= other; }
-	Mat operator%(const Mat &other) const { return Mat(*this) %= other; }
+	constexpr Mat operator+(const Mat &other) const { return Mat(*this) += other; }
+	constexpr Mat operator-(const Mat &other) const { return Mat(*this) -= other; }
+	constexpr Mat operator/(const Mat &other) const { return Mat(*this) /= other; }
+	constexpr Mat operator%(const Mat &other) const { return Mat(*this) %= other; }
 
 	//Since Matrix multiply is different, mulVal can be used to perform regular multiplications on the values
 
-	Mat &mulVal(const Mat &other) {
-		for (usz i = 0; i < H; ++i) axes[i] *= other.axes[i];
+	constexpr Mat &mulVal(const Mat &other) {
+		for (usz i = 0; i < W; ++i) axes[i] *= other.axes[i];
 		return *this;
 	}
 
-	static inline Mat mulVal(const Mat &a, const Mat &b) { return Mat(a).mulVal(b); }
-	static inline Mat scale(const Diagonal &diag) { return Mat(diag); }
+	static constexpr inline Mat mulVal(const Mat &a, const Mat &b) { return Mat(a).mulVal(b); }
+	static constexpr inline Mat scale(const Diagonal &diag) { return Mat(diag); }
 
 	//Comparison
 
@@ -179,15 +181,27 @@ struct Mat : public TMatStorage<T, W, H> {
 
 	//TODO: Inverse, determinant
 	//TODO: Transform vector
-	//TODO: Matrix multiplication
+
+	constexpr inline Mat operator*(const Mat &other) const {
+
+		Mat res;
+
+		for (usz i = 0; i < W; ++i)
+			for (usz j = 0; j < H; ++j)
+				res.m[i][j] = getHorizontal(j).dot(other.getVertical(i));
+
+		return res;
+	}
+
+	constexpr inline Mat &operator*=(const Mat &other) { return *this = *this * other; }
 
 	constexpr inline Mat<T, H, W> transpose() const {
 
 		Mat<T, H, W> res{};
 
-		for (usz j = 0; j < H && j < W; ++j)
-			for (usz i = 0; i < W && i < H; ++i)
-				res.m[i][j] = m[j][i];
+		for (usz i = 0; i < W && i < H; ++i)
+			for (usz j = 0; j < H && j < W; ++j)
+				res.m[j][i] = m[i][j];
 
 		return res;
 	}
@@ -203,9 +217,9 @@ struct Mat : public TMatStorage<T, W, H> {
 
 		Mat<T2, W2, H2> res{};
 
-		for (usz j = 0; j < H && j < H2; ++j)
-			for (usz i = 0; i < W && i < W2; ++i)
-				res.m[j][i] = T2(m[j][i]);
+		for (usz i = 0; i < W && i < W2; ++i)
+			for (usz j = 0; j < H && j < H2; ++j)
+				res.m[i][j] = T2(m[i][j]);
 
 		return res;
 	}
@@ -215,9 +229,9 @@ struct Mat : public TMatStorage<T, W, H> {
 
 		T2 res{};
 
-		for (usz j = 0; j < H && j < T2::vertical(); ++j)
-			for (usz i = 0; i < W && i < T2::horizontal(); ++i)
-				res.m[j][i] = typename T2::Type(m[j][i]);
+		for (usz i = 0; i < W && i < T2::horizontal(); ++i)
+			for (usz j = 0; j < H && j < T2::vertical(); ++j)
+				res.m[i][j] = typename T2::Type(m[i][j]);
 
 		return res;
 	}
@@ -227,6 +241,42 @@ struct Mat : public TMatStorage<T, W, H> {
 //Helper functions that carry to multiple types of matrices
 template<typename Mat, typename T>
 struct TMatHelper {
+
+	static constexpr inline Mat rotateX(T v) {
+
+		static_assert(
+			std::is_floating_point_v<typename Mat::Type>, 
+			"Can't call TMatHelper<Mat>::rotateX if T isn't a floating point"
+		);
+
+		static_assert(
+			Mat::horizontal() > 2 && Mat::vertical() > 2, 
+			"Can't call TMatHelper<Mat>::rotateX if Mat's dimensions are less than 3x3"
+		);
+
+		Mat res{};
+		res[1][1] = std::cos(v);	res[2][1] = -std::sin(v);
+		res[1][2] = std::sin(v);	res[2][2] = std::cos(v);
+		return res;
+	}
+
+	static constexpr inline Mat rotateY(T v) {
+
+		static_assert(
+			std::is_floating_point_v<typename Mat::Type>, 
+			"Can't call TMatHelper<Mat>::rotateY if T isn't a floating point"
+		);
+
+		static_assert(
+			Mat::horizontal() > 2 && Mat::vertical() > 2, 
+			"Can't call TMatHelper<Mat>::rotateY if Mat's dimensions are less than 3x3"
+		);
+
+		Mat res{};
+		res[0][0] = std::cos(v);	res[0][2] = -std::sin(v);
+		res[2][0] = std::sin(v);	res[2][2] = std::cos(v);
+		return res;
+	}
 
 	static constexpr inline Mat rotateZ(T v) {
 
@@ -308,7 +358,9 @@ struct Mat4x4 : public Mat<T, 4, 4> {
 	constexpr inline Mat4x4(const Mat<T, 4, 4> &dat) : Mat<T, 4, 4>(dat) {}
 	constexpr inline Mat4x4(Mat<T, 4, 4> &&dat) : Mat<T, 4, 4>(dat) {}
 
-	//Rotate z
+	//Rotation
+	static constexpr inline Mat4x4 rotateX(T v) { return TMatHelper<Mat4x4, T>::rotateX(v); }
+	static constexpr inline Mat4x4 rotateY(T v) { return TMatHelper<Mat4x4, T>::rotateY(v); }
 	static constexpr inline Mat4x4 rotateZ(T v) { return TMatHelper<Mat4x4, T>::rotateZ(v); }
 
 	//Helper functions
@@ -319,7 +371,7 @@ struct Mat4x4 : public Mat<T, 4, 4> {
 		return res;
 	}
 
-	static inline Mat4x4 perspective(T fov, T asp, T n) {
+	static inline Mat4x4 perspective(T fov, T asp, T n, T f) {
 
 		static_assert(
 			std::is_floating_point_v<T>, 
@@ -329,19 +381,22 @@ struct Mat4x4 : public Mat<T, 4, 4> {
 		T scale = T(1 / tan(fov / 2));
 
 		Mat4x4 res(
-			Vec4<T>(scale / asp, -scale, 0, 0)
+			Vec4<T>(scale / asp, -scale, n / (f - n), 0)
 		);
 
 		res.m[2][3] = -1;
-		res.m[3][2] = 2 * n;
+		res.m[3][2] = f * n / (f - n);
 		return res;
 	}
 
 	//TODO: Ortho
-	//TODO: Rotate X, Y
 
 	static constexpr inline Mat4x4 rotate(const Vec3<T> &rot) {
 		return rotateX(rot.x) * rotateY(rot.y) * rotateZ(rot.z);
+	}
+
+	static constexpr inline Mat4x4 scale(const Vec3<T> &scl) {
+		return Mat4x4(Vec4<T>(scl.x, scl.y, scl.z, 1));
 	}
 
 	static constexpr inline Mat4x4 transform(

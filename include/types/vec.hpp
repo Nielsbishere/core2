@@ -158,7 +158,7 @@ struct Vec : public TVecStorage<T, N> {
 	}
 	
 	constexpr inline T dot(const Vec &other) const {
-		T v;
+		T v{};
 		for (usz i = 0; i < N; ++i) v += arr[i] * other.arr[i];
 		return v;
 	}
