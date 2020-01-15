@@ -1,5 +1,6 @@
 #pragma once
 #include "types/types.hpp"
+#include "system.hpp"
 #include <sstream>
 
 namespace oic {

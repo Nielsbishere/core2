@@ -13,8 +13,6 @@ namespace oic {
 
 	System::~System() {
 
-		viewportManager_->clear();
-
 		if (log_ != nativeLog)
 			delete log_;
 

@@ -18,8 +18,7 @@ using f32 = float;
 using f64 = double;
 
 using c8 = char;
-using c16 = char16_t;
-using c32 = char32_t;
+using c16 = wchar_t;
 
 using usz = std::size_t;
 using isz = std::ptrdiff_t;
@@ -150,6 +149,7 @@ static inline void destroy(args *&...arg) {
 #include <string>
 
 using String = std::string;
+using WString = std::wstring;
 
 #include <vector>
 

@@ -107,11 +107,13 @@ namespace oic {
 
     };
 
-    //!A callback for handling file changes and loops
-    using FileCallback = void (*)(class FileSystem*, FileInfo&);
+	class FileSystem;
 
     //!A callback for handling file changes and loops
-    using FileChangeCallback = void (*)(class FileSystem*, const FileInfo&, FileChange);
+    using FileCallback = void (*)(FileSystem*, FileInfo&);
+
+    //!A callback for handling file changes and loops
+    using FileChangeCallback = void (*)(FileSystem*, const FileInfo&, FileChange);
 
     //!The class responsible for handling file I/O
     //A file system can also be implemented for an archive as well as a native file system

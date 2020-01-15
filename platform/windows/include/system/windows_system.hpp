@@ -13,7 +13,9 @@ namespace oic::windows {
 	private:
 
 		WindowsSystem();
-		~WindowsSystem() = default;
+		~WindowsSystem() {
+			wviewportManager.clear();
+		}
 
 		void sleep(ns time) final override;
 

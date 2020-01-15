@@ -145,6 +145,8 @@ namespace oic {
 				return false;
 			}
 
+			fclose(f);
+
 		}
 
 		return true;
@@ -159,6 +161,9 @@ namespace oic {
 			onVirtualFileChange(file, change);
 			return;
 		}
+
+		if (change == FileChange::ADD)
+			make(file);
 
 		struct stat st;
 		stat(file.path.c_str(), &st);

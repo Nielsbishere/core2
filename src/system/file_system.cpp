@@ -352,10 +352,8 @@ namespace oic {
 			return false;
 		}
 
-		if (exists(apath)) {
-			System::log()->fatal("File already exists");
-			return false;
-		}
+		if (exists(apath))
+			return true;
 
 		bool isLocal = apath[0] == '.';
 
