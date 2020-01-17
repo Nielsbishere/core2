@@ -494,6 +494,13 @@ struct Vec3 : public Vec<T, 3> {
 	constexpr inline Vec3 zxy() const { return { z, x, y }; }
 	constexpr inline Vec3 xzy() const { return { x, z, y }; }
 
+	constexpr inline Vec2<T> xy() const { return { x, y }; }
+	constexpr inline Vec2<T> xz() const { return { x, z }; }
+	constexpr inline Vec2<T> yx() const { return { y, x }; }
+	constexpr inline Vec2<T> yz() const { return { y, z }; }
+	constexpr inline Vec2<T> zx() const { return { z, x }; }
+	constexpr inline Vec2<T> zy() const { return { z, y }; }
+
 	constexpr inline Vec3 cross(const Vec3 &other) const {
 		return {
 			y * other.z - z * other.y,
