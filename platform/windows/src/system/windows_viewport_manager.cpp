@@ -5,11 +5,16 @@
 #include "input/keyboard.hpp"
 #include "input/mouse.hpp"
 #include "input/windows_input.hpp"
+#include "types/mat.hpp"
 #include "utils/timer.hpp"
-#include <comdef.h>
+
 #include <Windows.h>
-#include <windowsx.h>
+#include <Windowsx.h>
 #include <stdio.h>
+#include <dwrite.h>
+#include <ShellScalingApi.h>
+#pragma comment(lib, "dwrite.lib")
+#pragma comment(lib, "Shcore.lib")
 
 namespace oic {
 	bool Mouse::isSupported(Handle) const { return true; }
@@ -20,13 +25,159 @@ namespace oic::windows {
 
 	String getLastError() {
 		HRESULT hr = GetLastError();
-		_com_error err(hr);
-		return err.ErrorMessage();
+		return std::system_error(hr, std::system_category()).what();
 	}
 
 	LRESULT CALLBACK onCallback(HWND hwnd, UINT message, WPARAM wParam, LPARAM lParam);
 
-	WViewportManager::WViewportManager(): instance(GetModuleHandleA(NULL)) { }
+	struct ForeachMonitorData {
+		IDWriteFactory *factory;
+		List<Monitor> *monitors;
+	};
+
+	BOOL foreachMonitor(HMONITOR monitor, HDC, LPRECT rect, ForeachMonitorData *data) {
+
+		//Get settings from clear type (Windows' built-in font renderer)
+
+		IDWriteRenderingParams *renderParams{};
+		HRESULT hr;
+
+		if (FAILED(hr = data->factory->CreateMonitorRenderingParams(monitor, &renderParams)))
+			oic::System::log()->fatal(std::system_error(hr, std::system_category()).what());
+
+		DWRITE_PIXEL_GEOMETRY geometry = renderParams->GetPixelGeometry();
+		f32 gamma = renderParams->GetGamma();
+		f32 contrast = renderParams->GetEnhancedContrast();
+
+		renderParams->Release();
+
+		//Get sample positions from pixel order
+
+		Array<Vec2f32, 3> samples{};
+
+		if (geometry == DWRITE_PIXEL_GEOMETRY_BGR)
+			samples = { Vec2f32(1, 0), Vec2f32(0, 0), Vec2f32(-1, 0) };
+
+		else if (geometry == DWRITE_PIXEL_GEOMETRY_RGB)
+			samples = { Vec2f32(-1, 0), Vec2f32(0, 0), Vec2f32(1, 0) };
+
+		//Get display settings
+
+		MONITORINFOEXA monInfo{};
+		monInfo.cbSize = sizeof(monInfo);
+
+		bool hasInfo = GetMonitorInfoA(monitor, &monInfo);
+
+		oicAssert("Couldn't get monitor info " + getLastError(), hasInfo);
+
+		DEVMODEA mode{};
+		bool hasDeviceSettings = EnumDisplaySettingsA(monInfo.szDevice, ENUM_CURRENT_SETTINGS, &mode);
+
+		oicAssert("Couldn't get display settings " + GetLastError(), hasDeviceSettings);
+
+		Orientation orientation{};	//Physical orientation
+
+		if (mode.dmDisplayOrientation == DMDO_90)
+			orientation = Orientation::PORTRAIT;
+
+		else if (mode.dmDisplayOrientation == DMDO_180)
+			orientation = Orientation::LANDSCAPE_FLIPPED;
+
+		else if (mode.dmDisplayOrientation == DMDO_270)
+			orientation = Orientation::PORTRAIT_FLIPPED;
+
+		i32 refreshRate = mode.dmDisplayFrequency;
+
+		//Get physical size
+
+		u32 dpiX, dpiY;
+
+		if(FAILED(hr = GetDpiForMonitor(monitor, MDT_RAW_DPI, &dpiX, &dpiY)))
+			oic::System::log()->fatal(std::system_error(hr, std::system_category()).what());
+
+		Vec2f32 screenSize = { f32(rect->right - rect->left), f32(rect->bottom - rect->top) };
+		Vec2f32 sizeInMeters = screenSize / Vec2f32(f32(dpiX), f32(dpiY)) * 0.0254f;
+
+		//Convert samples to rotated space
+
+		if (orientation >= Orientation::LANDSCAPE_FLIPPED) {
+			samples[0].x *= -1;
+			samples[2].x *= -1;
+		}
+
+		if (orientation == Orientation::PORTRAIT || orientation == Orientation::PORTRAIT_FLIPPED) {
+			samples[0] = samples[0].swap();
+			samples[2] = samples[2].swap();
+		}
+
+		//Add monitor with all specs like position, dimension
+
+		data->monitors->push_back(
+			Monitor {
+				Vec2i32(rect->left, rect->top),
+				orientation,
+				refreshRate,
+
+				Vec2i32(rect->right, rect->bottom),
+				gamma,
+				contrast,
+
+				samples[0],
+				samples[1],
+
+				samples[2],
+				sizeInMeters
+			}
+		);
+
+		return true;
+	}
+
+	inline bool inView(const Vec2i32 &min, const Vec2i32 &max, const Monitor &other) {
+
+		return
+			min.x < other.max.x && max.x > other.min.x &&
+			min.y < other.max.y && max.y > other.min.y;
+	}
+
+	List<Monitor> getMonitorsFromWindow(WWindow *w) {
+
+		auto &screens = oic::System::viewportManager()->getScreens();
+
+		List<Monitor> monitors;
+
+		Vec2i32 min = w->info->offset;
+		Vec2i32 max = min + w->info->size.cast<Vec2i32>();
+
+		for (auto &mon : screens)
+			if (inView(min, max, mon))
+				monitors.push_back(mon);
+
+		return monitors;
+	}
+
+	WViewportManager::WViewportManager(): instance(GetModuleHandleA(NULL)) {
+
+		//Inititialize 
+
+		ForeachMonitorData fmonitorData{};
+		fmonitorData.monitors = &screens;
+
+		HRESULT hr =
+			DWriteCreateFactory(
+				DWRITE_FACTORY_TYPE_ISOLATED,
+				__uuidof(IDWriteFactory),
+				(IUnknown**)&fmonitorData.factory
+			);
+
+		if (SUCCEEDED(hr))
+			EnumDisplayMonitors(nullptr, nullptr, (MONITORENUMPROC) foreachMonitor, (LPARAM) &fmonitorData);
+
+		fmonitorData.factory->Release();
+	
+		//TODO: Register callback for when monitors change
+		//RegisterDeviceNotificationA
+	}
 	
 	WViewportManager::~WViewportManager() {
 
@@ -87,7 +238,10 @@ namespace oic::windows {
 		GetClientRect(hwnd, &r);
 		info->size = { u32(r.right - r.left), u32(r.bottom - r.top) };
 
-		if(hwnd == NULL) {
+		GetWindowRect(hwnd, &r);
+		info->offset = { r.left, r.top };
+
+		if(!hwnd) {
 			String err = getLastError();
 			System::log()->fatal(String("Couldn't create window: ") + err);
 			return;
@@ -111,6 +265,7 @@ namespace oic::windows {
 
 		if (w->info->vinterface) {
 			w->info->vinterface->init(w->info);
+			w->info->monitors = getMonitorsFromWindow(w);
 			w->info->vinterface->resize(w->info, w->info->size);
 		}
 
@@ -490,6 +645,7 @@ namespace oic::windows {
 				GetClientRect(hwnd, &r);
 
 				ptr->info->size = { u32(r.right - r.left), u32(r.bottom - r.top) };
+				ptr->info->monitors = getMonitorsFromWindow(ptr);
 
 				if(ptr->info->vinterface)
 					ptr->info->vinterface->resize(ptr->info, ptr->info->size);
@@ -505,9 +661,10 @@ namespace oic::windows {
 					break;
 
 				RECT r;
-				GetClientRect(hwnd, &r);
+				GetWindowRect(hwnd, &r);
 
 				ptr->info->offset = { r.left, r.top };
+				ptr->info->monitors = getMonitorsFromWindow(ptr);
 				break;
 			}
 		}

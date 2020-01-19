@@ -116,19 +116,19 @@ struct Mat : public TMatStorage<T, W, H> {
 	static constexpr usz horizontal() { return W; }
 	static constexpr usz vertical() { return H; }
 
-	Vertical &operator[](const usz x) { return axes[x]; }
-	constexpr const Vertical &operator[](const usz x) const { return axes[x]; }
+	Vertical &operator[](const usz i) { return axes[i]; }
+	constexpr const Vertical &operator[](const usz i) const { return axes[i]; }
 
 	T &operator[](const Vec2usz &xy) { return m[xy.x][xy.y]; }
 	constexpr const T &operator[](const Vec2usz &xy) const { return axes[xy.x][xy.y]; }
 
-	constexpr Horizontal getHorizontal(const usz y) const {
+	constexpr Horizontal getHorizontal(const usz j) const {
 		Vertical res;
-		for (usz i = 0; i < W; ++i) res[i] = m[i][y];
+		for (usz i = 0; i < W; ++i) res[i] = m[i][j];
 		return res;
 	}
 
-	constexpr const Vertical &getVertical(const usz x) const { return axes[x]; }
+	constexpr const Vertical &getVertical(const usz i) const { return axes[i]; }
 
 	//Arithmetic overloads
 

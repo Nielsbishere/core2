@@ -11,6 +11,8 @@ using HWND = HWND__*;
 
 using HANDLE = void*;
 
+namespace oic { struct Monitor; }
+
 namespace oic::windows {
 
 	struct WWindow {
@@ -54,7 +56,7 @@ namespace oic::windows {
 
 		void pull(WViewportThreadData *data);
 
-		virtual void redraw(const ViewportInfo *info) final override;
+		void redraw(const ViewportInfo *info) final override;
 
 	private:
 

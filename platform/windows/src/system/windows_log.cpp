@@ -118,20 +118,25 @@ namespace oic::windows {
 
 		usz stackCount{};
 
-		if (!SymInitialize(process, NULL, TRUE))
-			goto noSymbols;
+		bool hasSymbols = SymInitialize(process, NULL, TRUE);
+		bool anySymbol = false;
 
-		for (usz i = 0; i < stackTrace.size() && stackTrace[i]; ++i, ++stackCount) {
+		for (usz i = 0; i < stackTrace.size() && stackTrace[i]; ++i && hasSymbols, ++stackCount) {
 
 			usz addr = usz(stackTrace[i]);
+
+			if (!addr)
+				break;
 
 			//Get module name
 
 			usz moduleBase = SymGetModuleBase(process, addr);
 
 			c8 modulePath[MAX_PATH + 1]{};
-			if (!moduleBase || !GetModuleFileNameA((HINSTANCE) moduleBase, modulePath, MAX_PATH))
-				goto error;
+			if (!moduleBase || !GetModuleFileNameA((HINSTANCE)moduleBase, modulePath, MAX_PATH))
+				continue;
+
+			anySymbol = true;
 
 			c8 symbolData[sizeof(IMAGEHLP_SYMBOL) + MAX_PATH + 1]{};
 
@@ -141,8 +146,8 @@ namespace oic::windows {
 
 			c8 *symbolName = symbol->Name;
 
-			if(!SymGetSymFromAddr(process, addr, NULL, symbol))
-				goto error;
+			if (!SymGetSymFromAddr(process, addr, NULL, symbol))
+				continue;
 
 			DWORD offset{};
 			IMAGEHLP_LINE line{};
@@ -151,7 +156,7 @@ namespace oic::windows {
 			SymGetLineFromAddr(process, addr, &offset, &line);	//Can fail, meaning that line is null
 
 			if (line.FileName && strlen(line.FileName) > MAX_PATH)
-				goto error;
+				continue;
 
 			CapturedStackTrace &capture = captured[i];
 			capture.mod = modulePath;
@@ -167,40 +172,25 @@ namespace oic::windows {
 
 		}
 
-		printf("Stacktrace:\n");
+		if(hasSymbols && anySymbol)
+			printf("\nStacktrace:\n");
+		else
+			printf("\nStacktrace: (No symbols)\n");
 
 		for (usz i = 0; i < stackCount; ++i) {
 
 			CapturedStackTrace &capture = captured[i];
 
-			if(capture.lin)
+			if(!capture.sym.size())
+				printf("%p\n", stackTrace[i]);
+			else if(capture.lin)
 				printf("%p: %s!%s (%s, Line %u)\n", stackTrace[i], capture.mod.c_str(), capture.sym.c_str(), capture.fil.c_str(), capture.lin);
 			else
 				printf("%p: %s!%s\n", stackTrace[i], capture.mod.c_str(), capture.sym.c_str());
 		}
 
-		goto end;
-
-		//Fallback for executable with no debug symbols
-
-	error:
-
-		#ifndef NDEBUG
-			printf("No symbols available (%s)\n", _com_error(GetLastError()).ErrorMessage());
-		#endif
-
-	noSymbols:
-
-		printf("Stacktrace:\n");
-
-		for(usz i = 0; i < stackTrace.size() && stackTrace[i]; ++i)
-			printf("%p\n", stackTrace[i]);
-
-		//Cleanup
-
-	end:
-
-		SymCleanup(process);
+		if(hasSymbols)
+			SymCleanup(process);
 
 	}
 
