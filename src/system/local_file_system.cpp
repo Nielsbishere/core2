@@ -31,6 +31,79 @@
 
 namespace oic {
 
+	class CFile : public File {
+
+	private:
+
+		FILE *file{};
+
+		virtual ~CFile() { 
+			fclose(file); 
+			file = nullptr;
+		}
+
+	public:
+
+		CFile(FileInfo &f): File(f) {
+		
+			if (f.hasAccess(FileAccess::WRITE)) {
+
+				if (fopen_s(&file, f.path.c_str(), "a+b") != 0 || !file)
+					System::log()->fatal("File doesn't exist");
+
+				else isOpen = true;
+
+			} else if (f.hasAccess(FileAccess::READ)) {
+
+				if (fopen_s(&file, f.path.c_str(), "rb") != 0 || !file)
+					System::log()->fatal("File doesn't exist");
+
+				else isOpen = true;
+			}
+		
+		}
+
+		bool read(void *v, FileSize size, FileSize offset) const final override {
+
+			if (!file) {
+				System::log()->fatal("Read access isn't permitted");
+				return false;
+			}
+
+			if (offset + size > f.fileSize) {
+				System::log()->fatal("File read is out of bounds");
+				return false;
+			}
+
+			fseeko(file, offset, 0);
+			return fread(v, 1, size, file);
+		}
+
+		bool write(const void *v, FileSize size, FileSize offset) const final override {
+
+			if (!file) {
+				System::log()->fatal("Read access isn't permitted");
+				return false;
+			}
+
+			if (offset == usz_MAX)
+				f.fileSize += size;
+
+			else if (offset > f.fileSize) {
+				System::log()->fatal("File write out of bounds");
+				return false;
+			}
+
+			else if(offset + size > f.fileSize)
+				f.fileSize = offset + size;
+
+			if(offset != usz_MAX)
+				fseeko(file, offset, 0);
+
+			return fwrite(v, 1, size, file);
+		}
+	};
+
 	LocalFileSystem::LocalFileSystem(String localPath): 
 		FileSystem(Array<FileAccess, 2>{ FileAccess::READ, FileAccess::READ_WRITE }), 
 		localPath(localPath) {}
@@ -39,88 +112,17 @@ namespace oic {
 		return localPath;
 	}
 
-	bool LocalFileSystem::read(const FileInfo &file, void *data, usz size, usz offset) const {
+	File *LocalFileSystem::open(FileInfo &info) {
 
-		if (!file.isLocal())
-			return readVirtual(file, data, size, offset);
-
-		if (file.isFolder) {
-			System::log()->fatal("Can't read from a folder");
-			return false;
+		if (info.isFolder) {
+			System::log()->fatal("Can't open a folder");
+			return nullptr;
 		}
 
-		if (!file.hasAccess(FileAccess::READ)) {
-			System::log()->fatal("Read access isn't permitted");
-			return false;
-		}
-		
-		FILE *f{};
-		if(fopen_s(&f, file.path.c_str(), "rb") != 0 || !f) {
-			System::log()->fatal("File doesn't exist");
-			return false;
-		}
+		if (!info.isLocal()) 
+			return openVirtual(info);
 
-		if (!size)
-			size = file.fileSize - (offset >= file.fileSize ? 0 : offset);
-
-		if (offset + size > file.fileSize) {
-			System::log()->fatal("File read is out of bounds");
-			fclose(f);
-			return false;
-		}
-
-		fseeko(f, offset, 0);
-		fread(data, 1, size, f);
-		fclose(f);
-		return true;
-	}
-
-	bool LocalFileSystem::write(FileInfo &file, const Buffer &buffer, usz size, usz bufferOffset, usz fileOffset) {
-
-		if (!file.isLocal())
-			return writeVirtual(file, buffer, size, bufferOffset, fileOffset);
-
-		if (file.isFolder) {
-			System::log()->fatal("File write isn't possible in folders");
-			return false;
-		}
-
-		if (!file.hasAccess(FileAccess::WRITE)) {
-			System::log()->fatal("File write is not permitted");
-			return false;
-		}
-
-		FILE *f{};
-		if(fopen_s(&f, file.path.c_str(), fileOffset == usz_MAX ? "a+b" : "w+b") != 0 || !f) {
-			System::log()->fatal("File doesn't exist");
-			return false;
-		}
-
-		if (bufferOffset + size > buffer.size()) {
-			System::log()->fatal("File write out of bounds");
-			return false;
-		}
-
-		if (!size)
-			size = buffer.size() - bufferOffset;
-
-		if (fileOffset == usz_MAX)
-			file.fileSize += size;
-
-		else if (fileOffset > file.fileSize) {
-			System::log()->fatal("File write out of bounds");
-			return false;
-		}
-		else if(fileOffset + size > file.fileSize)
-			file.fileSize = fileOffset + size;
-
-		if(fileOffset != usz_MAX)
-			fseeko(f, fileOffset, 0);
-
-		fwrite(buffer.data() + bufferOffset, 1, size, f);
-		fclose(f);
-		upd(file.path);
-		return true;
+		return new CFile(info);
 	}
 
 	bool LocalFileSystem::make(FileInfo &file) {

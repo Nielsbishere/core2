@@ -13,16 +13,13 @@ namespace oic {
 
 		using FileSystem::write;
 		using FileSystem::read;
+		using FileSystem::open;
 
 		//!Gets the path to the ./ directory
 		//Only useable as a hint to the end user
 		const String &getLocalPath() const;
 
-		//!Read the local file using the C File API
-		bool read(const FileInfo &file, void *address, usz size = 0, usz offset = 0) const final override;
-
-		//!Write to the local file using the C File API
-		bool write(FileInfo &file, const Buffer &buffer, usz size = 0, usz bufferOffset = 0, usz fileOffset = 0) final override;
+		File *open(FileInfo &info) final override;
 
 	protected:
 
@@ -36,18 +33,8 @@ namespace oic {
 		//requires path and file location variables to be set
 		void initFile(FileInfo &file);
 
-		//!Read the virtual file
-		virtual bool readVirtual(const FileInfo &file, void *data, usz size, usz offset) const = 0;
-
-		//!Write to the virtual file
-		//Since most virtual file systems are read only, this is optional
-		//@param[inout] FileInfo &file
-		//@param[in] const Buffer &toWrite
-		//@param[in] usz size
-		//@param[in] usz bufferOffset
-		//@param[in] usz fileOffset
-		//@return false if the virtual file can't be written or writing isn't supported
-		virtual bool writeVirtual(FileInfo &, const Buffer &, usz, usz, usz) { return false; }
+		//!Open virtual file
+		virtual File *openVirtual(FileInfo &file) = 0;
 
 		//!Called on virtual file system change
 		//@param[inout] FileInfo &file

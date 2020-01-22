@@ -12,7 +12,7 @@ namespace oic {
 	FileInfo::SizeType FileInfo::getFileObjects() const { return fileEnd - folderHint; }
 	bool FileInfo::isLocal() const { return path[0] == lroot[0]; }
 	bool FileInfo::hasData() const { return fileSize != 0; }
-	bool FileInfo::hasRegion(usz size, usz offset) const {
+	bool FileInfo::hasRegion(FileSize size, FileSize offset) const {
 		return fileSize > 0 && fileSize > size + offset;
 	}
 
@@ -116,7 +116,7 @@ namespace oic {
 		return total;
 	}
 
-	//TODO: What happens with "a/"? does it just turn into "a"?
+	//TODO: What happens with "a/"? does it just turn into "a": no (but should be)
     bool FileSystem::resolvePath(const String &path, String &outPath) const {
 
 		//Force correct paths
@@ -158,11 +158,11 @@ namespace oic {
 
         auto &arr = files(info.isLocal());
 
-        for(usz i = info.folderHint, end = info.fileEnd; i != end; ++i)
+        for(FileHandle i = info.folderHint, end = info.fileEnd; i != end; ++i)
             callback(this, arr[i]);
 
         if(recurse)
-            for(usz i = info.folderHint; i != info.fileHint; ++i)
+            for(FileHandle i = info.folderHint; i != info.fileHint; ++i)
                 foreachFile(arr[i], callback, true);
 
         return true;
@@ -210,7 +210,7 @@ namespace oic {
 		return localFileLut.find(apath) != localFileLut.end();
 	}
 
-	bool FileSystem::regionExists(const String &path, usz size, usz offset) const {
+	bool FileSystem::regionExists(const String &path, FileSize size, FileSize offset) const {
 
 		String apath;
 
@@ -370,9 +370,9 @@ namespace oic {
 			String part = parts[i];
 			bool found = false;
 
-			for (usz k = parent->folderHint; k != parent->fileHint; ++k) {
+			for (FileHandle k = parent->folderHint; k != parent->fileHint; ++k) {
 
-				usz l = k - parent->id;
+				FileHandle l = k - parent->id;
 				if (parent[l].name == part) {
 					parent = parent + l;
 					found = true;
@@ -579,17 +579,60 @@ namespace oic {
 		return (FileInfo&)((const FileSystem*)this)->get(id, isLocal);
 	}
 
-	bool FileSystem::read(const FileInfo &file, Buffer &buffer, usz size, usz offset) const {
+	bool FileSystem::read(FileInfo &file, void *address, FileSize size, FileSize offset) {
+
+		if (File *f = open(file)) {
+			bool success = f->read(address, size, offset);
+			close(f);
+			return success;
+		}
+
+		return false;
+	}
+
+	bool FileSystem::read(FileInfo &file, Buffer &buffer, FileSize size, FileSize offset) {
 
 		if (offset + size > file.fileSize) {
 			oic::System::log()->fatal("File read out of bounds");
 			return false;
 		}
 
-		if (!size) size = file.fileSize - offset;
+		if (!size)
+			size = file.fileSize - (offset >= file.fileSize ? 0 : offset);
 
 		buffer.resize(size);
 		return read(file, buffer.data(), size, offset);
 	}
 
+	void FileSystem::close(File *f) { 
+		end();
+		delete f;
+	}
+
+	bool FileSystem::write(FileInfo &file, const void *address, FileSize size, FileSize offset) {
+
+		if (File *f = open(file)) {
+
+			bool success = f->write(address, size, offset);
+
+			if (success)
+				upd(file.path);
+
+			close(f);
+			return success;
+		}
+
+		return false;
+	}
+	
+	bool FileSystem::write(FileInfo &file, const Buffer &buffer, FileSize size, usz bufferOffset, FileSize fileOffset) {
+
+		if (bufferOffset + size > buffer.size())
+			oic::System::log()->fatal("Buffer out of bounds");
+
+		if (!size)
+			size = buffer.size() - bufferOffset;
+
+		return write(file, buffer.data() + bufferOffset, size, fileOffset);
+	}
 }

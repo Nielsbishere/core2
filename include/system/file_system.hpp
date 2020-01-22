@@ -29,6 +29,9 @@ namespace oic {
 	//!A handle to a file
 	using FileHandle = u32;
 
+	//!Max size of a file
+	using FileSize = usz;
+
     //!The queried info about a file
     //The layout of a recursive file structure:
     //folders, files, recursive
@@ -40,8 +43,6 @@ namespace oic {
 		//!The difference between two file handles
 		using SizeType = FileHandle;
 
-	//private:
-
 		//!The full path in oic representation
 		String path{};
 
@@ -50,7 +51,7 @@ namespace oic {
 
         //!The total size of the file
         //When the file is a folder, this is set to 0
-        usz fileSize{};
+		FileSize fileSize{};
 
         //!The last modification time of the file
         //When the file is virtual, this is set to 0
@@ -103,7 +104,8 @@ namespace oic {
 		//!Determines if this file or folder has data attached to it
 		bool hasData() const;
 
-		bool hasRegion(usz size, usz offset) const;
+		//!Checks if the specified region is present for this file
+		bool hasRegion(FileSize size, FileSize offset) const;
 
     };
 
@@ -114,6 +116,30 @@ namespace oic {
 
     //!A callback for handling file changes and loops
     using FileChangeCallback = void (*)(FileSystem*, const FileInfo&, FileChange);
+
+	//!A virtual or physical file
+	class File {
+
+		friend class FileSystem;
+
+	protected:
+
+		FileInfo &f;
+		bool isOpen{};
+
+		File(FileInfo &f): f(f) {}
+		virtual ~File() {}
+
+	public:
+
+		virtual bool read(void *v, FileSize size, FileSize offset) const = 0;
+		virtual bool write(const void *v, FileSize size, FileSize offset) const = 0;
+
+		inline bool hasRegion(FileSize size, FileSize offset) const { return f.hasRegion(size, offset); }
+
+		inline const FileInfo &getFile() const { return f; }
+		inline usz size() const { return f.fileSize; }
+	};
 
     //!The class responsible for handling file I/O
     //A file system can also be implemented for an archive as well as a native file system
@@ -147,6 +173,17 @@ namespace oic {
         FileSystem &operator=(const FileSystem&) = delete;
         FileSystem(FileSystem&&) = delete;
         FileSystem &operator=(FileSystem&&) = delete;
+
+		//!Open a file; has to be closed to allow it to be modified again
+		//Stall until the file system is available
+		virtual File *open(FileInfo &inf) = 0;
+
+		//!Open a file; has to be closed to allow it to be modified again
+		//Stall until the file system is available
+		inline File *open(const String &path) { return open(get(path)); }
+
+		//!Close a file; ensure it can be used again
+		void close(File *f);
 
         //!Called to add a file modification callback
         void addFileChangeCallback(FileChangeCallback);
@@ -196,7 +233,7 @@ namespace oic {
 		//!Detect if the path exists
 		//@param[in] path The target file object with oic file notation
 		//@return bool exists Whether the file has the specified region
-		bool regionExists(const String &path, usz size, usz offset) const;
+		bool regionExists(const String &path, FileSize size, FileSize offset) const;
 
 		//!Read a (part of a) file into an address (means you have to allocate 'size' bytes)
 		//@param[in] file The target file object
@@ -204,7 +241,7 @@ namespace oic {
 		//@param[in] size The number of bytes to read (non-zero)
 		//@param[in] offset The byte offset in the file
 		//@return bool success
-		virtual bool read(const FileInfo &file, void *address, usz size, usz offset) const = 0;
+		bool read(FileInfo &file, void *address, FileSize size, FileSize offset);
 
 		//!Read a (part of a) file into an address (means you have to allocate 'size' bytes)
 		//@param[in] path The path in oic file notation
@@ -212,7 +249,7 @@ namespace oic {
 		//@param[in] size The number of bytes to read (non-zero)
 		//@param[in] offset The byte offset in the file
 		//@return bool success
-		inline bool read(const String &str, void *address, usz size, usz offset) const {
+		inline bool read(const String &str, void *address, FileSize size, FileSize offset) {
 			return read(get(str), address, size, offset);
 		}
 
@@ -222,7 +259,7 @@ namespace oic {
         //@param[in] size The number of bytes to read (0 = all by default)
         //@param[in] offset The byte offset in the file
         //@return bool success
-		bool read(const FileInfo &file, Buffer &buffer, usz size = 0, usz offset = 0) const;
+		bool read(FileInfo &file, Buffer &buffer, FileSize size = 0, FileSize offset = 0);
 
 		//!Read a (part of a) file into a buffer
 		//@param[in] path The path in oic file notation
@@ -230,18 +267,26 @@ namespace oic {
 		//@param[in] size The number of bytes to read (0 = all by default)
 		//@param[in] offset The byte offset in the file
 		//@return bool success
-		inline bool read(const String &str, Buffer &buffer, usz size = 0, usz offset = 0) const {
+		inline bool read(const String &str, Buffer &buffer, FileSize size = 0, FileSize offset = 0) {
 			return read(get(str), buffer, size, offset);
 		}
 
+		//!Write to a (part of a) file from an address
+		//@param[in] file The target file object
+		//@param[out] address (u8[size])
+		//@param[in] size The number of bytes to read (non-zero)
+		//@param[in] offset The byte offset in the file
+		//@return bool success
+		bool write(FileInfo &file, const void *address, FileSize size, FileSize offset);
+
         //!Write to a (part of a) file
         //@param[in] file The target file object
-        //@param[out] buffer The input
+        //@param[out] buffer The input (u8[bufferOffset + size])
         //@param[in] size The number of bytes to write (0 = all by default)
         //@param[in] bufferOffset The byte offset in the buffer
         //@param[in] fileOffset The byte offset in the file (0 = clear, usz_MAX = append, otherwise it tries to write into the offset)
         //@return bool success
-        virtual bool write(FileInfo &file, const Buffer &buffer, usz size = 0, usz bufferOffset = 0, usz fileOffset = 0) = 0;
+		bool write(FileInfo &file, const Buffer &buffer, FileSize size = 0, usz bufferOffset = 0, FileSize fileOffset = 0);
 
         //!Write to a (part of a) file
 		//@param[in] path The path in oic file notation
@@ -250,7 +295,7 @@ namespace oic {
         //@param[in] bufferOffset The byte offset in the buffer
         //@param[in] fileOffset The byte offset in the file (0 = clear, usz_MAX = append, otherwise it tries to write into the offset)
         //@return bool success
-		inline bool write(const String &file, const Buffer &buffer, usz size = 0, usz bufferOffset = 0, usz fileOffset = 0) {
+		inline bool write(const String &file, const Buffer &buffer, FileSize size = 0, usz bufferOffset = 0, FileSize fileOffset = 0) {
 			return write(get(file), buffer, size, bufferOffset, fileOffset);
 		}
 

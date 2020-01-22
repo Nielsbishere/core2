@@ -26,8 +26,10 @@ namespace oic {
 		thread.wait();
 	}
 
-	bool WFileSystem::readVirtual(const FileInfo&, void*, usz, usz) const {
-		return false;		//TODO:
+	File *WFileSystem::openVirtual(FileInfo &) {
+		//TODO: Virtual files
+		oic::System::log()->fatal("Virtual files not supported yet");
+		return nullptr;
 	}
 
 	String getPath(FILE_NOTIFY_INFORMATION *fni) {
