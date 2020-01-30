@@ -97,7 +97,7 @@ struct Mat : public TMatStorage<T, W, H> {
 	Mat &operator=(Mat&&) = default;
 
 	//Identity or scale matrix
-	constexpr inline Mat(const Diagonal &scale = 1) {
+	explicit constexpr inline Mat(const Diagonal &scale = 1) {
 		for (usz i = 0; i < diagonalN; ++i) m[i][i] = scale[i];
 	}
 
@@ -181,6 +181,17 @@ struct Mat : public TMatStorage<T, W, H> {
 
 	//TODO: Inverse, determinant
 	//TODO: Transform vector
+
+	constexpr inline Vec<T, H> operator*(const Vec<T, W> &other) const {
+
+		Vec<T, H> res{};
+
+		for (usz i = 0; i < W; ++i)
+			for (usz j = 0; j < H; ++j)
+				res[j] += m[i][j] * other[i];
+
+		return res;
+	}
 
 	constexpr inline Mat operator*(const Mat &other) const {
 

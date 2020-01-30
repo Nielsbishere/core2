@@ -24,6 +24,8 @@ if(WIN32)
 	set(platform windows)
 endif()
 
+# TODO: On lost focus just reset all input
+
 file(GLOB_RECURSE platformHpp "platform/${platform}/include/*.hpp")
 file(GLOB_RECURSE platformCpp "platform/${platform}/src/*.cpp")
 
