@@ -17,8 +17,10 @@
 #pragma comment(lib, "Shcore.lib")
 
 namespace oic {
+
 	bool Mouse::isSupported(Handle) const { return true; }
 	bool Keyboard::isSupported(Handle) const { return true; }
+
 }
 
 namespace oic::windows {
@@ -263,6 +265,8 @@ namespace oic::windows {
 		WWindow *w = new WWindow(data->info, instance);
 		hwnd.push_back(w);
 
+		w->info->hint = ViewportInfo::Hint(ViewportInfo::IS_FOCUSSED | w->info->hint);
+
 		if (w->info->vinterface) {
 			w->info->vinterface->init(w->info);
 			w->info->monitors = getMonitorsFromWindow(w);
@@ -367,6 +371,20 @@ namespace oic::windows {
 			case WM_CREATE:
 				break;
 
+			case WM_SETFOCUS:
+
+				if (auto *ptr = (WWindow*) GetWindowLongPtrA(hwnd, 0))
+					ptr->info->hint = ViewportInfo::Hint(ptr->info->hint | ViewportInfo::IS_FOCUSSED);
+
+				break;
+
+			case WM_KILLFOCUS:
+
+				if (auto *ptr = (WWindow*) GetWindowLongPtrA(hwnd, 0))
+					ptr->info->hint = ViewportInfo::Hint(ptr->info->hint & ~ViewportInfo::IS_FOCUSSED);
+
+				break;
+
 			case WM_INPUT: {
 
 				u32 size{};
@@ -390,7 +408,7 @@ namespace oic::windows {
 				rect.top += 8 + menuSize;
 
 				if(data->header.hDevice)
-					if (auto *ptr = (WWindow *)GetWindowLongPtrA(hwnd, 0)) {
+					if (auto *ptr = (WWindow*)GetWindowLongPtrA(hwnd, 0)) {
 
 						auto *vinterface = ptr->info->vinterface;
 
@@ -509,6 +527,9 @@ namespace oic::windows {
 						if (dvc->getType() != InputDevice::Type::MOUSE)
 							continue;
 
+						if (ptr->info->hasHint(ViewportInfo::CAPTURE_CURSOR))
+							return false;
+
 						int x = GET_X_LPARAM(lParam); 
 						int y = GET_Y_LPARAM(lParam);
 
@@ -582,9 +603,11 @@ namespace oic::windows {
 				return 0;
 			}
 
-			case WM_PAINT:
+			case WM_PAINT: {
 
-				if (auto *ptr = (WWindow*)GetWindowLongPtrA(hwnd, 0)) {
+				auto *ptr = (WWindow *) GetWindowLongPtrA(hwnd, 0);
+
+				if (ptr && ptr->info->hasHint(ViewportInfo::IS_FOCUSSED)) {
 
 					//Update interface
 
@@ -617,6 +640,7 @@ namespace oic::windows {
 				}
 
 				return NULL;
+			}
 
 			case WM_GETMINMAXINFO: {
 				LPMINMAXINFO lpMMI = (LPMINMAXINFO) lParam;
@@ -638,17 +662,18 @@ namespace oic::windows {
 
 				auto *ptr = (WWindow*)GetWindowLongPtrA(hwnd, 0);
 
-				if (!ptr)
-					break;
-
 				RECT r;
 				GetClientRect(hwnd, &r);
+				Vec2u32 newSize = { u32(r.right - r.left), u32(r.bottom - r.top) };
 
-				ptr->info->size = { u32(r.right - r.left), u32(r.bottom - r.top) };
+				if (!ptr || !newSize.all() || newSize == ptr->info->size)
+					break;
+
+				ptr->info->size = newSize;
 				ptr->info->monitors = getMonitorsFromWindow(ptr);
 
-				if(ptr->info->vinterface)
-					ptr->info->vinterface->resize(ptr->info, ptr->info->size);
+				if (ptr->info->vinterface)
+						ptr->info->vinterface->resize(ptr->info, ptr->info->size);
 
 				break;
 			}

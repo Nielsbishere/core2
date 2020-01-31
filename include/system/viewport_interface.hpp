@@ -23,9 +23,9 @@ namespace oic {
 		virtual void onDeviceConnect(const ViewportInfo*, const InputDevice*) {}
 		virtual void onDeviceRemoval(const ViewportInfo*, const InputDevice*) {}
 
-		virtual void onInputActivate(const ViewportInfo*, const InputDevice*, InputHandle) {}
-		virtual void onInputDeactivate(const ViewportInfo*, const InputDevice*, InputHandle) {}
-		virtual void onInputUpdate(const ViewportInfo*, const InputDevice*, InputHandle, bool) {}
+		virtual void onInputActivate(ViewportInfo*, const InputDevice*, InputHandle) {}
+		virtual void onInputDeactivate(ViewportInfo*, const InputDevice*, InputHandle) {}
+		virtual void onInputUpdate(ViewportInfo*, const InputDevice*, InputHandle, bool) {}
 
 	};
 

@@ -46,7 +46,9 @@ namespace oic {
 			NO_MENU,
 			NOT_RESIZABLE = 4,
 			NOT_MINIMIZABLE = 8,
-			HANDLE_INPUT = 16
+			HANDLE_INPUT = 16,
+			IS_FOCUSSED = 32,
+			CAPTURE_CURSOR = 64
 		};
 
 		//The name of this layer
