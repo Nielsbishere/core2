@@ -8,22 +8,30 @@ namespace oic {
 	//NONE: The file doesn't have data or children to be read or written
     //READ: The file's data can be read
     //WRITE: The file's data can be written
-    enum class FileAccess : u8 {
-		NONE = 0b00,
-        READ = 0b01,
-        WRITE = 0b10,
-        READ_WRITE = 0b11
+	enum class FileAccess : u8 {
+		NONE, READ, WRITE, READ_WRITE
+	};
+
+	//!The flags of a file
+	//IS_VIRTUAL: The file only exists in memory
+	//IS_FOLDER: The file is a folder
+    enum class FileFlags : u8 {
+		NONE = 0x0,
+        READ = 0x1,
+        WRITE = 0x2,
+		IS_VIRTUAL = 0x4,
+		IS_FOLDER = 0x8
     };
 
 	//!The types of file changes
-	//ADD/REM = user or program added file to / removed file from the file system
-	//UPD = user or program updated the contents of the file
-	//MOV = user or program renamed or moved the file
+	//ADD/DEL = user or program added file to / deleted file from the file system
+	//UPDATE = user or program updated the contents of the file
+	//MOVE = user or program renamed or moved the file
 	enum class FileChange {
-		REM,
+		DEL,
 		ADD,
-		UPD,
-		MOV
+		UPDATE,
+		MOVE
 	};
 
 	//!A handle to a file
@@ -35,7 +43,6 @@ namespace oic {
     //!The queried info about a file
     //The layout of a recursive file structure:
     //folders, files, recursive
-	//TODO: Make this only editable by FileSystem
     struct FileInfo {
 
 		//friend class FileSystem;
@@ -49,10 +56,6 @@ namespace oic {
 		//!The file/folder name (can't contain any slashes)
 		String name{};
 
-        //!The total size of the file
-        //When the file is a folder, this is set to 0
-		FileSize fileSize{};
-
         //!The last modification time of the file
         //When the file is virtual, this is set to 0
         time_t modificationTime{};
@@ -60,14 +63,12 @@ namespace oic {
         //!Implementation specific data
         void *dataExt{};
 
-        //!Implementation specific magic number (for identifying subtypes)
-        u32 magicNumber{};
+		//!The total size of the file
+		//When the file is a folder, this is set to 0
+		FileSize fileSize{};
 
         //!The parent's file id
 		FileHandle parent{};
-
-		//!The id of this file
-		FileHandle id{};
 
         //!The start location of the folders
 		FileHandle folderHint{};
@@ -78,13 +79,8 @@ namespace oic {
         //!The end location of the files (fileEnd - fileHint = fileCount)
 		FileHandle fileEnd{};
 
-        //!The access flags of this file
-        FileAccess access{};
-
-        //!Whether this file has children
-		//Doesn't indicate if there is data attached to this file
-		//A folder can have data (for example an archive)
-        bool isFolder{};
+        //!The flags of this file
+        FileFlags flags{};
 
         //Helper functions
 
@@ -93,18 +89,16 @@ namespace oic {
 		SizeType getFileObjects() const;
 
 		//!Determines if this file can be accessed with these flags
-        bool hasAccess(FileAccess flags) const;
+        bool hasAccess(FileAccess access) const;
+        bool hasFlags(FileFlags flags) const;
 
 		//!Determines if this file can be accessed with these flags
-        static bool hasAccess(FileAccess target, FileAccess flags);
+        static bool hasFlags(FileFlags target, FileFlags flags);
 
-		//!Determines if this file is located in the local file system or the virtual one
 		bool isLocal() const;
-
-		//!Determines if this file or folder has data attached to it
+		bool isVirtual() const;
+		bool isFolder() const;
 		bool hasData() const;
-
-		//!Checks if the specified region is present for this file
 		bool hasRegion(FileSize size, FileSize offset) const;
 
     };
@@ -112,10 +106,10 @@ namespace oic {
 	class FileSystem;
 
     //!A callback for handling file changes and loops
-    using FileCallback = void (*)(FileSystem*, FileInfo&);
+    using FileCallback = void (*)(FileSystem*, const FileInfo, void*);
 
     //!A callback for handling file changes and loops
-    using FileChangeCallback = void (*)(FileSystem*, const FileInfo&, FileChange);
+    using FileChangeCallback = void (*)(FileSystem*, const FileInfo, FileChange, void*);
 
 	//!A virtual or physical file
 	class File {
@@ -124,16 +118,17 @@ namespace oic {
 
 	protected:
 
-		FileInfo &f;
-		bool isOpen{};
+		FileSystem *fs;
+		const FileInfo f;
+		bool isOpen{}, hasWritten{};
 
-		File(FileInfo &f): f(f) {}
-		virtual ~File() {}
+		File(FileSystem *fs, const FileInfo f): fs(fs), f(f) {}
+		virtual ~File();
 
 	public:
 
 		virtual bool read(void *v, FileSize size, FileSize offset) const = 0;
-		virtual bool write(const void *v, FileSize size, FileSize offset) const = 0;
+		virtual bool write(const void *v, FileSize size, FileSize offset) = 0;
 
 		inline bool hasRegion(FileSize size, FileSize offset) const { return f.hasRegion(size, offset); }
 
@@ -145,85 +140,64 @@ namespace oic {
     //A file system can also be implemented for an archive as well as a native file system
     //Every file system supports virtual files, though local and global files aren't always guaranteed
 	//
-    //~/ is the virtual file system (READ)
-    //./ is the local or virtual file system (READ_WRITE)
+    //~/ is the virtual file system (cached READ or READ_WRITE memory access)
+    //./ is the local file system (non-cached READ_WRITE disk access)
     //../ and ./ get resolved to form the final path
     //\ is disallowed
     //This is called oic file notation
 	//
 	//Each file system has to handle keeping the file system up to date
 	//
-	//Note: Keep in mind that FileInfo& is only valid while the FileSystem hasn't resized yet
-	//FileHandles can change too, but can still be valid after file system resize
-	//Use paths to avoid referencing incorrect data or files
-    class FileSystem {
+	//Note: Keep in mind that virtual FileInfo& is only valid while the FileSystem hasn't been resized (add/remove/move)
+	//		and doesn't hold all values for local files (such as file/folder hints, parent)
+	//		Use paths to avoid referencing invalid data; and lock & unlock the file system when reading or writing from it
+	//
+	class FileSystem {
 
-    public:
+	public:
 
 		//!Initialize the file system
-		//fileAccess[0] = permissions for virtual files
-		//fileAccess[1] = permissions for local files
-		//FileAccess::NONE can be used to disallow virtual or local files
-        FileSystem(const Array<FileAccess, 2> &fileAccess);
+		//FileAccess::NONE can be used to disallow virtual files
+		FileSystem(const FileAccess virtualFileAccess);
 
 		//Constructors
-        virtual ~FileSystem() = default;
+		virtual ~FileSystem() = default;
 
-        FileSystem(const FileSystem&) = delete;
-        FileSystem &operator=(const FileSystem&) = delete;
-        FileSystem(FileSystem&&) = delete;
-        FileSystem &operator=(FileSystem&&) = delete;
-
-		//!Open a file; has to be closed to allow it to be modified again
-		//Stall until the file system is available
-		virtual File *open(FileInfo &inf) = 0;
+		FileSystem(const FileSystem &) = delete;
+		FileSystem &operator=(const FileSystem &) = delete;
+		FileSystem(FileSystem &&) = delete;
+		FileSystem &operator=(FileSystem &&) = delete;
 
 		//!Open a file; has to be closed to allow it to be modified again
-		//Stall until the file system is available
-		inline File *open(const String &path) { return open(get(path)); }
+		//If you don't want to wait for the file to be available, set the max timeout to 0
+		//	every retryTimeout it will attempt to open it again until maxTimeout is reached
+		virtual File *open(const FileInfo &inf, ns maxTimeout = 50_ms, ns retryTimeout = 10_ms) = 0;
+
+		//!Open a file by path
+		inline File *open(const String &path, ns maxTimeout = 50_ms, ns retry = 10_ms) { return open(get(path), maxTimeout, retry); }
 
 		//!Close a file; ensure it can be used again
 		void close(File *f);
 
-        //!Called to add a file modification callback
-        void addFileChangeCallback(FileChangeCallback);
+		//!Called to add a file modification callback at a directory
+		void addFileChangeCallback(FileChangeCallback, const String &, void *);
 
-        //!Called to remove a file modification callback
-        void removeFileChangeCallback(FileChangeCallback);
+		//!Called to remove a file modification callback
+		void removeFileChangeCallback(const String&);
 
-        //!Get the properties of a file
-        //@param[in] path The target file object with oic file notation
-        //@return FileInfo &fileProperties
-        //@warning Throws if the file doesn't exist, FileInfo is only valid until new files are added/removed
-        FileInfo &get(const String &path);
+		//!Get the properties of a file
+		//@param[in] path The target file object with oic file notation
+		//@warning Throws if the file doesn't exist
+		const FileInfo get(const String &path) const;
 
-        //!Get the properties of a file
-        //@param[in] path The target file object with oic file notation
-        //@return FileInfo &fileProperties
-        //@warning Throws if the file doesn't exist, FileInfo is only valid until new files are added/removed
-        const FileInfo &get(const String &path) const;
+		//!Resolve the path to a normal file directory (without ../ and ./)
+		//@param[in] path The target file object with oic file notation
+		//@param[out] outPath
+		//@return bool exists Whether the path leads to a valid path
+		bool resolvePath(const String &path, String &outPath) const;
 
-		//!Get the properties by a file handle
-		//@param[in] id The file id
-		//@param[in] isLocal If the file is local or virtual
-        //@return FileInfo &fileProperties
-        //@warning Throws if the file doesn't exist, FileInfo is only valid until new files are added/removed
-		FileInfo &get(FileHandle id, bool isLocal);
-
-		//!Get the properties by a file handle
-		//@param[in] id The file id
-        //@return FileInfo &fileProperties
-        //@warning Throws if the file doesn't exist, FileInfo is only valid until new files are added/removed
-		const FileInfo &get(FileHandle id, bool isLocal) const;
-
-        //!Resolve the path to a normal file directory (without ../ and ./)
-        //@param[in] path The target file object with oic file notation
-        //@param[out] outPath
-        //@return bool exists Whether the path leads to a valid path
-        bool resolvePath(const String &path, String &outPath) const;
-
-        //!Allows looping through the children of a folder
-        bool foreachFile(const FileInfo &path, FileCallback callback, bool recurse);
+		//!Allows looping through the children of a folder
+		bool foreachFile(const String &path, FileCallback callback, bool recurse, void*);
 
 		//!Detect if the path exists
 		//@param[in] path The target file object with oic file notation
@@ -236,30 +210,12 @@ namespace oic {
 		bool regionExists(const String &path, FileSize size, FileSize offset) const;
 
 		//!Read a (part of a) file into an address (means you have to allocate 'size' bytes)
-		//@param[in] file The target file object
-		//@param[out] address (u8[size])
-		//@param[in] size The number of bytes to read (non-zero)
-		//@param[in] offset The byte offset in the file
-		//@return bool success
-		bool read(FileInfo &file, void *address, FileSize size, FileSize offset);
-
-		//!Read a (part of a) file into an address (means you have to allocate 'size' bytes)
 		//@param[in] path The path in oic file notation
 		//@param[out] address (u8[size])
 		//@param[in] size The number of bytes to read (non-zero)
 		//@param[in] offset The byte offset in the file
 		//@return bool success
-		inline bool read(const String &str, void *address, FileSize size, FileSize offset) {
-			return read(get(str), address, size, offset);
-		}
-
-        //!Read a (part of a) file into a buffer
-        //@param[in] file The target file object
-        //@param[out] buffer The output
-        //@param[in] size The number of bytes to read (0 = all by default)
-        //@param[in] offset The byte offset in the file
-        //@return bool success
-		bool read(FileInfo &file, Buffer &buffer, FileSize size = 0, FileSize offset = 0);
+		bool read(const String &path, u8 *address, FileSize size, FileSize offset);
 
 		//!Read a (part of a) file into a buffer
 		//@param[in] path The path in oic file notation
@@ -267,84 +223,99 @@ namespace oic {
 		//@param[in] size The number of bytes to read (0 = all by default)
 		//@param[in] offset The byte offset in the file
 		//@return bool success
-		inline bool read(const String &str, Buffer &buffer, FileSize size = 0, FileSize offset = 0) {
-			return read(get(str), buffer, size, offset);
-		}
+		bool read(const String &file, Buffer &buffer, FileSize size = 0, FileSize offset = 0);
 
 		//!Write to a (part of a) file from an address
-		//@param[in] file The target file object
+		//@param[in] path The path in oic file notation
 		//@param[out] address (u8[size])
 		//@param[in] size The number of bytes to read (non-zero)
 		//@param[in] offset The byte offset in the file
 		//@return bool success
-		bool write(FileInfo &file, const void *address, FileSize size, FileSize offset);
+		bool write(const String &file, const u8 *address, FileSize size, FileSize offset);
 
-        //!Write to a (part of a) file
-        //@param[in] file The target file object
-        //@param[out] buffer The input (u8[bufferOffset + size])
-        //@param[in] size The number of bytes to write (0 = all by default)
-        //@param[in] bufferOffset The byte offset in the buffer
-        //@param[in] fileOffset The byte offset in the file (0 = clear, usz_MAX = append, otherwise it tries to write into the offset)
-        //@return bool success
-		bool write(FileInfo &file, const Buffer &buffer, FileSize size = 0, usz bufferOffset = 0, FileSize fileOffset = 0);
-
-        //!Write to a (part of a) file
+		//!Write to a (part of a) file
 		//@param[in] path The path in oic file notation
-        //@param[out] buffer The input
-        //@param[in] size The number of bytes to write (0 = all by default)
-        //@param[in] bufferOffset The byte offset in the buffer
-        //@param[in] fileOffset The byte offset in the file (0 = clear, usz_MAX = append, otherwise it tries to write into the offset)
-        //@return bool success
-		inline bool write(const String &file, const Buffer &buffer, FileSize size = 0, usz bufferOffset = 0, FileSize fileOffset = 0) {
-			return write(get(file), buffer, size, bufferOffset, fileOffset);
-		}
+		//@param[out] buffer The input
+		//@param[in] size The number of bytes to write (0 = all by default)
+		//@param[in] bufferOffset The byte offset in the buffer
+		//@param[in] fileOffset The byte offset in the file (0 = clear, usz_MAX = append, otherwise it tries to write into the offset)
+		//@return bool success
+		bool write(const String &file, const Buffer &buffer, FileSize size = 0, usz bufferOffset = 0, FileSize fileOffset = 0);
 
 		//!Add a directory or file
 		//@param[in] path The path in oic file notation
 		//@param[in] isFolder If the file is capable of having children
+		//@param bool isCallback; if this is true, it only invokes the callbacks
+		//				this means it won't actually remove data
 		//@return bool success
-		bool add(const String &path, bool isFolder);
+		bool add(const String &path, bool isFolder, bool isCallback = false);
 
 		//!Remove a directory or file
 		//@param[in] path The path in oic file notation
+		//@param bool isCallback; if this is true, it only invokes the callbacks
+		//				this means it won't actually remove data
 		//@return bool success
-		bool rem(const String &path);
+		bool remove(const String &path, bool isCallback = false);
 
 		//!Update the metadata for a file
 		//@param[in] path The path in oic file notation
 		//@return bool success
-		bool upd(const String &path);
+		bool update(const String &path);
 
 		//!Move a file to a destination (and rename)
 		//@param[in] path The path in oic file notation
-		//@param[in] newPath The desintation path in oic file notation
+		//@param[in] newPath The destination path in oic file notation
+		//@param bool isCallback; if this is true, it only invokes the callbacks
+		//				this means it won't actually remove data
 		//@return bool success
-		bool mov(const String &path, const String &newPath);
+		bool mov(const String &path, const String &newPath, bool isCallback = false);
 
 		//Sizes of the file system
 
-		FileInfo::SizeType size(bool isLocal) const;
-		const List<FileInfo> &getFiles(bool isLocal) const;
+		inline FileHandle virtualSize() const { return FileHandle(virtualFiles.size()); }
+		inline const List<FileInfo> &getVirtualFiles() const { return virtualFiles; }
 
-		void begin();		//Wait for the file system to be available from updates
-		void end();			//Release the file system for future updates
+		void lock();		//Wait for the file system to be available
+		void unlock();		//Release the file system
+
+		//Local access; not always present
+
+		virtual const FileInfo local(const String &path) const = 0;
+		virtual bool hasLocal(const String &path) const = 0;
+		virtual bool hasLocalRegion(const String &path, FileSize size, FileSize offset) const = 0;
+
+		virtual List<String> localDirectories(const String &path) const = 0;
+		virtual List<String> localFileObjects(const String &path) const = 0;
+		virtual List<String> localFiles(const String &path) const = 0;
 
     protected:
 
 		//!Creates a local file
-		virtual bool make(FileInfo &) { return false; }
+		virtual bool makeLocal(const String &, bool isFolder) = 0;
+
+		//!Deletes a local file
+		virtual bool delLocal(const String &) = 0;
 
 		//!Creates the look up tables by file path
 		void initLut();
     
-        //!Should be called to initialize the file system cache
+        //!Called to initialize the file system cache
         virtual void initFiles() = 0;
 
 		//!Used to handle file changes and update the metadata for the file
-		virtual void onFileChange(FileInfo &, FileChange) {}
+		virtual void onFileChange(const FileInfo &, FileChange) {}
 
-		//!Used to obtain files for modifications/initialization
-		List<FileInfo> &files(bool isLocal);
+		//!Start the watcher that updates the local file system
+		//Called when a file change callback is created
+		//should be handled in a different thread
+		virtual void startFileWatcher(const String &path) = 0;
+
+		//!End the watcher that updates the local file system
+		//Called when a file change callback is removed
+		virtual void endFileWatcher(const String &path) = 0;
+
+		//!File cache
+		List<FileInfo> virtualFiles;
 
     private:
 
@@ -352,21 +323,15 @@ namespace oic {
 		static usz obtainPath(const String &path, List<String> &splits);
 
 		//!Rename file (no recursion)
-		void rename(FileInfo &info, const String &path, bool setName);
-
-		//!Remove a file
-		bool remove(FileHandle handle, bool isLocal);
-
-        //!File cache
-        List<FileInfo> virtualFiles, localFiles;
+		void rename(const FileInfo &info, const String &path, bool setName);
 
 		//!File id by path look up tables
-		HashMap<String, FileHandle> virtualFileLut, localFileLut;
+		HashMap<String, FileHandle> virtualFileLut;
 
         //!List of all file change callbacks
-        List<FileChangeCallback> callbacks;
+        HashMap<String, std::pair<FileChangeCallback, void*>> callbacks;
 
-		std::mutex lock;
+		std::mutex mutex;
 
     };
 

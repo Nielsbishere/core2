@@ -607,7 +607,7 @@ namespace oic::windows {
 
 				auto *ptr = (WWindow *) GetWindowLongPtrA(hwnd, 0);
 
-				if (ptr && ptr->info->hasHint(ViewportInfo::IS_FOCUSSED)) {
+				if (ptr && !ptr->info->hasHint(ViewportInfo::IS_MINIMIZED)) {
 
 					//Update interface
 
@@ -666,7 +666,14 @@ namespace oic::windows {
 				GetClientRect(hwnd, &r);
 				Vec2u32 newSize = { u32(r.right - r.left), u32(r.bottom - r.top) };
 
-				if (!ptr || !newSize.all() || newSize == ptr->info->size)
+				if (!ptr) break;
+
+				if (wParam == SIZE_MINIMIZED) 
+					ptr->info->hint = ViewportInfo::Hint(ptr->info->hint | ViewportInfo::IS_MINIMIZED);
+				else
+					ptr->info->hint = ViewportInfo::Hint(ptr->info->hint & ~ViewportInfo::IS_MINIMIZED);
+
+				if (!newSize.all() || newSize == ptr->info->size)
 					break;
 
 				ptr->info->size = newSize;

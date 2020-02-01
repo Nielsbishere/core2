@@ -44,31 +44,31 @@ namespace oic {
 
 	public:
 
-		CFile(FileInfo &f): File(f) {
+		CFile(FileSystem *fs, const FileInfo &f, ns timeout, ns retry): File(fs, f) {
 		
-			if (f.hasAccess(FileAccess::WRITE)) {
+			const char *accessFlags = "rb";
 
-				if (fopen_s(&file, f.path.c_str(), "a+b") != 0 || !file)
-					System::log()->fatal("File doesn't exist");
+			if (f.hasAccess(FileAccess::WRITE))
+				accessFlags = "a+b";
 
-				else isOpen = true;
+			while (timeout >= retry) {
 
-			} else if (f.hasAccess(FileAccess::READ)) {
+				if (fopen_s(&file, f.path.c_str(), accessFlags) != 0 || !file) {
+					oic::System::wait(retry);
+					timeout -= retry;
+				}
 
-				if (fopen_s(&file, f.path.c_str(), "rb") != 0 || !file)
-					System::log()->fatal("File doesn't exist");
-
-				else isOpen = true;
+				else {
+					isOpen = true;
+					timeout = 0;
+				}
 			}
-		
+
+			if(!isOpen)
+				System::log()->fatal("File can't be opened");
 		}
 
 		bool read(void *v, FileSize size, FileSize offset) const final override {
-
-			if (!file) {
-				System::log()->fatal("Read access isn't permitted");
-				return false;
-			}
 
 			if (offset + size > f.fileSize) {
 				System::log()->fatal("File read is out of bounds");
@@ -79,23 +79,17 @@ namespace oic {
 			return fread(v, 1, size, file);
 		}
 
-		bool write(const void *v, FileSize size, FileSize offset) const final override {
-
-			if (!file) {
-				System::log()->fatal("Read access isn't permitted");
-				return false;
-			}
+		bool write(const void *v, FileSize size, FileSize offset) final override {
 
 			if (offset == usz_MAX)
-				f.fileSize += size;
+				;
 
 			else if (offset > f.fileSize) {
 				System::log()->fatal("File write out of bounds");
 				return false;
 			}
 
-			else if(offset + size > f.fileSize)
-				f.fileSize = offset + size;
+			hasWritten = true;
 
 			if(offset != usz_MAX)
 				fseeko(file, offset, 0);
@@ -105,16 +99,15 @@ namespace oic {
 	};
 
 	LocalFileSystem::LocalFileSystem(String localPath): 
-		FileSystem(Array<FileAccess, 2>{ FileAccess::READ, FileAccess::READ_WRITE }), 
-		localPath(localPath) {}
+		FileSystem(FileAccess::READ), localPath(localPath) {}
 
 	const String &LocalFileSystem::getLocalPath() const {
 		return localPath;
 	}
 
-	File *LocalFileSystem::open(FileInfo &info) {
+	File *LocalFileSystem::open(const FileInfo &info, ns timeout, ns retry) {
 
-		if (info.isFolder) {
+		if (info.isFolder()) {
 			System::log()->fatal("Can't open a folder");
 			return nullptr;
 		}
@@ -122,19 +115,14 @@ namespace oic {
 		if (!info.isLocal()) 
 			return openVirtual(info);
 
-		return new CFile(info);
+		return new CFile(this, info, timeout, retry);
 	}
 
-	bool LocalFileSystem::make(FileInfo &file) {
+	bool LocalFileSystem::makeLocal(const String &file, bool isFolder) {
 
-		if (!file.isLocal()) {
-			System::log()->fatal("Couldn't create a file in a virtual space");
-			return false;
-		}
+		if (isFolder) {
 
-		if (file.isFolder) {
-
-			if (_mkdir(file.path.c_str()) != 0) {
+			if (_mkdir(file.c_str()) != 0) {
 				System::log()->fatal("Couldn't create local folder");
 				return false;
 			}
@@ -142,55 +130,114 @@ namespace oic {
 		} else {
 
 			FILE *f{};
-			if (fopen_s(&f, file.path.c_str(), "w") != 0 || !f) {
+			if (fopen_s(&f, file.c_str(), "w") != 0 || !f) {
 				System::log()->fatal("Couldn't create local file");
 				return false;
 			}
 
 			fclose(f);
+		}
+
+		return true;
+	}
+
+	bool LocalFileSystem::delLocal(const String &path) {
+
+		const FileInfo inf = get(path);
+
+		if (inf.isFolder()) {
+
+			if (_rmdir(path.c_str()) != 0) {
+				System::log()->fatal("Couldn't delete local folder");
+				return false;
+			}
+
+		} else {
+
+			if (::remove(path.c_str()) != 0) {
+				System::log()->fatal("Couldn't delete local file");
+				return false;
+			}
 
 		}
 
 		return true;
 	}
 
-	void LocalFileSystem::onFileChange(FileInfo &file, FileChange change) {
+	void LocalFileSystem::onFileChange(const FileInfo &file, FileChange change) {
 
-		if (change == FileChange::REM)
+		if (change == FileChange::DEL)
 			return;
 
 		if (!file.isLocal()) {
 			onVirtualFileChange(file, change);
 			return;
 		}
-
-		if (change == FileChange::ADD)
-			make(file);
-
-		struct stat st;
-		stat(file.path.c_str(), &st);
-
-		file.modificationTime = st.st_mtime;
-		file.fileSize = st.st_size;
-
 	}
 
-	void LocalFileSystem::initFile(FileInfo &file) {
+	const FileInfo LocalFileSystem::local(const String &path) const {
 
-		if (!file.isLocal())
-			return;
+		String apath;
 
-		struct stat st;
-		stat(file.path.c_str(), &st);
+		if (!resolvePath(path, apath)) {
+			oic::System::log()->fatal("Invalid path passed to LocalFileSystem");
+			return {};
+		}
 
-		file.modificationTime = st.st_mtime;
+		struct stat v;
 
-		if(file.id != 0)
-			file.access = get(file.parent, file.isLocal()).access;
+		if (stat(path.c_str(), &v)) {
+			oic::System::log()->fatal("Local file not found");
+			return {};
+		}
 
-		file.isFolder = !S_ISREG(st.st_mode);
-		file.fileSize = st.st_size * usz(!file.isFolder);
+		const bool isFile = S_ISREG(v.st_mode);
+		u8 flags{};
 
+		if (!isFile)
+			flags |= u8(FileFlags::IS_FOLDER);
+
+		if (v.st_mode & _S_IREAD)
+			flags |= u8(FileFlags::READ);
+
+		if (v.st_mode & _S_IWRITE)
+			flags |= u8(FileFlags::WRITE);
+
+		return FileInfo {
+			path, path.substr(path.find_last_of('/') + 1),
+			v.st_mtime, nullptr,
+			isFile ? FileSize(v.st_size) : 0,
+			0, 0, 0, 0, FileFlags(flags)
+		};
 	}
 
+	bool LocalFileSystem::hasLocal(const String &path) const {
+
+		String apath;
+
+		if (!resolvePath(path, apath))
+			return false;
+
+		struct stat v;
+
+		if (stat(path.c_str(), &v))
+			return false;
+
+		return true;
+	}
+
+	bool LocalFileSystem::hasLocalRegion(const String &path, FileSize size, FileSize offset) const {
+
+		String apath;
+
+		if (!resolvePath(path, apath))
+			return false;
+
+		struct stat v;
+
+		if (stat(path.c_str(), &v))
+			return false;
+
+		return usz(offset) + size > usz(v.st_size) * bool(S_ISREG(v.st_mode));
+	}
 }

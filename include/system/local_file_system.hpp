@@ -19,31 +19,31 @@ namespace oic {
 		//Only useable as a hint to the end user
 		const String &getLocalPath() const;
 
-		File *open(FileInfo &info) final override;
+		File *open(const FileInfo &info, ns maxTimeout, ns retryTimeout) final override;
 
 	protected:
 
-		//!Update the file size and modification time of the local folder
-		void onFileChange(FileInfo &path, FileChange change) final override;
+		//!Make or delete files
+		void onFileChange(const FileInfo &file, FileChange change) final override;
 
-		//!Create a folder in the physical directory
-		bool make(FileInfo &file) final override;
+		//!Create a file/folder in the physical directory
+		bool makeLocal(const String &path, bool isFolder) final override;
 
-		//!Setup the data of the file
-		//requires path and file location variables to be set
-		void initFile(FileInfo &file);
+		//!Remove a file/folder in the physical directory
+		bool delLocal(const String &path) final override;
 
 		//!Open virtual file
-		virtual File *openVirtual(FileInfo &file) = 0;
+		virtual File *openVirtual(const FileInfo &file) = 0;
+
+
+		const FileInfo local(const String &path) const final override;
+		bool hasLocal(const String &path) const final override;
+		bool hasLocalRegion(const String &path, FileSize size, FileSize offset) const final override;
 
 		//!Called on virtual file system change
 		//@param[inout] FileInfo &file
 		//@param[in] FileChange change
-		virtual void onVirtualFileChange(FileInfo &, FileChange) { }
-
-		//!Initialize the watcher that updates the local file system
-		//Should be called from child class
-		virtual void initFileWatcher() = 0;
+		virtual void onVirtualFileChange(const FileInfo &, FileChange) { }
 
 	private:
 
