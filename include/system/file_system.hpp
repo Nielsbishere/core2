@@ -119,7 +119,7 @@ namespace oic {
 	protected:
 
 		FileSystem *fs;
-		const FileInfo f;
+		FileInfo f;
 		bool isOpen{}, hasWritten{};
 
 		File(FileSystem *fs, const FileInfo f): fs(fs), f(f) {}
@@ -129,6 +129,8 @@ namespace oic {
 
 		virtual bool read(void *v, FileSize size, FileSize offset) const = 0;
 		virtual bool write(const void *v, FileSize size, FileSize offset) = 0;
+
+		virtual bool resize(FileSize size) = 0;
 
 		inline bool hasRegion(FileSize size, FileSize offset) const { return f.hasRegion(size, offset); }
 

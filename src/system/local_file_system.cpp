@@ -81,10 +81,7 @@ namespace oic {
 
 		bool write(const void *v, FileSize size, FileSize offset) final override {
 
-			if (offset == usz_MAX)
-				;
-
-			else if (offset > f.fileSize) {
+			if (offset != usz_MAX && offset > f.fileSize) {
 				System::log()->fatal("File write out of bounds");
 				return false;
 			}
@@ -95,6 +92,11 @@ namespace oic {
 				fseeko(file, offset, 0);
 
 			return fwrite(v, 1, size, file);
+		}
+
+		bool resize(FileSize size) final override {
+			f.fileSize = size;
+			return true;
 		}
 	};
 
