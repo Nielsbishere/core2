@@ -66,7 +66,7 @@ struct Vec : public TVecStorage<T, N> {
 
 	//Arithmetic functions
 	
-	constexpr inline Vec(const T &t) {
+	constexpr inline Vec(const T &t): TVecStorage<T, N>{} {
 		for (usz i = 0; i < N; ++i) arr[i] = t;
 	}
 	
