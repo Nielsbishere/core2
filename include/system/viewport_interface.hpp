@@ -14,8 +14,8 @@ namespace oic {
 
 		virtual ~ViewportInterface() {}
 		virtual void init(ViewportInfo*) = 0;
-		virtual void release(const ViewportInfo*) = 0;
-		virtual void resize(const ViewportInfo*, const Vec2u32&) = 0;
+		virtual void release(const ViewportInfo*) {}
+		virtual void resize(const ViewportInfo*, const Vec2u32&) {}
 		virtual void render(const ViewportInfo*) = 0;
 
 		virtual void update(const ViewportInfo*, f64) {}		//Can be called before or after render
