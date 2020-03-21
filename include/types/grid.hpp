@@ -18,6 +18,7 @@ namespace oic {
 
 		usz w{};
 		T *data{};
+		bool ownsData = true;
 
 	public:
 
@@ -31,11 +32,23 @@ namespace oic {
 		inline T *end() { return data + w; }
 
 		Grid1D() {}
-		~Grid1D() { delete[] data; data = nullptr; w = {}; }
+		~Grid1D() { 
+			if(ownsData) delete[] data;
+			data = nullptr; w = {};
+		}
+		
+		Grid1D(usz w): w(w), data(new T[w]{}){}
+
+		Grid1D(const u8 *buffer, usz bytes):
+			ownsData(false), hw(bytes / sizeof(T)), data((T*)buffer)
+		{
+			if (bytes % sizeof(T))
+				oic::System::log()->fatal("Invalid buffer size passed to Grid1D");
+		}
 
 		template<usz W, typename = std::enable_if_t<W != 0>>
 		Grid1D(const T(&dat)[W]) : data(new T[W]), w(W) {
-			memcpy(data, dat, dataSize());
+			std::memcpy(data, dat, dataSize());
 		}
 
 		template<template<typename> typename Arr>
@@ -44,35 +57,46 @@ namespace oic {
 				list.size() ? new T[list.size()] :
 				nullptr
 			), w(list.size()) {
-			memcpy(data, list.data(), dataSize());
+			std::memcpy(data, list.data(), dataSize());
 		}
 
-		Grid1D(const Grid1D &g): w(g.w), data(g.data ? new T[g.w] : nullptr) {
-			memcpy(data, g.data, dataSize());
+		Grid1D(const Grid1D &g): w(g.w), data(g.data), ownsData(g.ownsData) {
+			if (g.ownsData && g.data) {
+				data = new T[g.w];
+				std::memcpy(data, g.data, dataSize());
+			}
 		}
 
-		Grid1D(Grid1D &&g): w(g.w), data(g.data) {
+		Grid1D(Grid1D &&g): w(g.w), data(g.data), ownsData(g.ownsData) {
 			g.data = nullptr;
 			g.w = {};
 		}
 
 		inline Grid1D &operator=(const Grid1D &g) {
 
-			delete[] data;
+			if(ownsData)
+				delete[] data;
 
 			w = g.w;
-			data = w ? new T[w] : nullptr;
-			memcpy(data, g.data, dataSize());
+			ownsData = g.ownsData;
+
+			if (g.ownsData && g.data) {
+				data = new T[w];
+				std::memcpy(data, g.data, dataSize());
+			} 
+			else data = g.data;
 
 			return *this;
 		}
 
 		inline Grid1D &operator=(Grid1D &&g) {
 
-			delete[] data;
+			if(ownsData)
+				delete[] data;
 
 			w = g.w;
 			data = g.data;
+			ownsData = g.ownsData;
 
 			g.data = nullptr;
 			g.w = {};
@@ -97,6 +121,7 @@ namespace oic {
 
 		Vec2usz hw;
 		T *data{};
+		bool ownsData = true;
 
 	public:
 
@@ -111,11 +136,23 @@ namespace oic {
 		inline T *end() { return data + linearSize(); }
 
 		Grid2D() {}
-		~Grid2D() { delete[] data; data = nullptr; hw = {}; }
+		~Grid2D() { 
+			if(ownsData) delete[] data; 
+			data = nullptr; hw = {};
+		}
+
+		Grid2D(Vec2usz hw): hw(hw), data(new T[hw[0] * hw[1]]{}){}
+
+		Grid2D(const u8 *buffer, usz bytes, usz W):
+			ownsData(false), hw(bytes / sizeof(T) / W, W), data((T*)buffer)
+		{
+			if (bytes % sizeof(T) || bytes % (sizeof(T) * W))
+				oic::System::log()->fatal("Invalid buffer size passed to Grid2D");
+		}
 
 		template<usz H, usz W, typename = std::enable_if_t<W != 0 && H != 0>>
-		Grid2D(const T(&dat)[H][W]) : hw{ H, W }, data(new T[H*W]) {
-			memcpy(data, dat, dataSize());
+		Grid2D(const T(&dat)[H][W]) : hw(H, W), data(new T[H*W]) {
+			std::memcpy(data, dat, dataSize());
 		}
 
 		template<template<typename> typename Arr>
@@ -128,32 +165,45 @@ namespace oic {
 			if (linearSize() != list.size())
 				oic::System::log()->fatal("Invalid list size in Grid2D");
 
-			memcpy(data, list.data(), dataSize());
+			std::memcpy(data, list.data(), dataSize());
 		}
 
-		Grid2D(const Grid2D &g): hw(g.hw), data(g.data ? new T[g.linearSize()] : nullptr) {
-			memcpy(data, g.data, dataSize());
+		Grid2D(const Grid2D &g): hw(g.hw), data(g.data), ownsData(g.ownsData) {
+			if (g.data && g.ownsData) {
+				data = new T[g.linearSize()];
+				std::memcpy(data, g.data, dataSize());
+			}
 		}
 
-		Grid2D(Grid2D &&g): hw(g.hw), data(g.data) {
+		Grid2D(Grid2D &&g): hw(g.hw), data(g.data), ownsData(g.ownsData) {
 			g.data = nullptr;
 			g.hw = {};
 		}
 
 		inline Grid2D &operator=(const Grid2D &g) {
 
-			delete[] data;
-
 			hw = g.hw;
-			data = linearSize() ? new T[linearSize()] : nullptr;
-			memcpy(data, g.data, dataSize());
+
+			if(ownsData) 
+				delete[] data;
+
+			ownsData = g.ownsData;
+
+			if (g.ownsData && g.data) {
+				data = new T[linearSize()];
+				std::memcpy(data, g.data, dataSize());
+			}
+			else data = g.data;
 
 			return *this;
 		}
 
 		inline Grid2D &operator=(Grid2D &&g) {
 
-			delete[] data;
+			if(ownsData) 
+				delete[] data;
+
+			ownsData = g.ownsData;
 
 			hw = g.hw;
 			data = g.data;
@@ -185,6 +235,7 @@ namespace oic {
 
 		Vec3usz lhw;
 		T *data{};
+		bool ownsData = true;
 
 	public:
 
@@ -199,14 +250,24 @@ namespace oic {
 		inline T *end() { return data + linearSize(); }
 
 		Grid3D() {}
-		~Grid3D() { delete[] data; data = nullptr; lhw = {}; }
+		~Grid3D() { 
+			if(ownsData) delete[] data;
+			data = nullptr; lhw = {};
+		}
 
-		template<
-			usz H, usz W, usz L, typename = std::enable_if_t<W != 0 && H != 0 && L != 0>
-		>
+		Grid3D(Vec3usz lhw): lhw(lhw), data(new T[lhw[0] * lhw[1] * lwh[2]]{}){}
+
+		Grid3D(const u8 *buffer, usz bytes, Vec2usz hw):
+			ownsData(false), lhw(bytes / sizeof(T) / hw[0] / hw[1], hw[0], hw[1]), data((T*)buffer)
+		{
+			if (bytes % sizeof(T) || bytes % (sizeof(T) * hw[1]) || bytes % (sizeof(T) * hw[0] * hw[1]))
+				oic::System::log()->fatal("Invalid buffer size passed to Grid3D");
+		}
+
+		template<usz H, usz W, usz L, typename = std::enable_if_t<W != 0 && H != 0 && L != 0>>
 		Grid3D(const T(&dat)[L][H][W]) : 
 			data(new T[L*H*W]), lhw{ L, H, W } {
-			memcpy(data, dat, dataSize());
+			std::memcpy(data, dat, dataSize());
 		}
 
 		template<template<typename> typename Arr>
@@ -219,33 +280,44 @@ namespace oic {
 			if (linearSize() != list.size())
 				oic::System::log()->fatal("Invalid list size in Grid3D");
 
-			memcpy(data, list.data(), dataSize());
+			std::memcpy(data, list.data(), dataSize());
 		}
 
-		Grid3D(const Grid3D &g): lhw(g.lhw), 
-			data(g.data ? new T[g.linearSize()] : nullptr) {
-			memcpy(data, g.data, dataSize());
+		Grid3D(const Grid3D &g): lhw(g.lhw), data(g.data) ownsData(g.ownsData) {
+			if (g.ownsData && g.data) {
+				data = new T[g.linearSize()];
+				std::memcpy(data, g.data, dataSize());
+			}
 		}
 
-		Grid3D(Grid3D &&g): lhw(g.lhw), data(g.data) {
+		Grid3D(Grid3D &&g): lhw(g.lhw), data(g.data), ownsData(g.ownsData) {
 			g.data = nullptr;
 			g.lhw = {};
 		}
 
 		inline Grid3D &operator=(const Grid3D &g) {
 
-			delete[] data;
+			if(ownsData)
+				delete[] data;
 
 			lhw = g.lhw;
-			data = linearSize() ? new T[linearSize()] : nullptr;
-			memcpy(data, g.data, dataSize());
+			ownsData = g.ownsData;
+
+			if (g.data && g.ownsData) {
+				data = new T[linearSize()];
+				std::memcpy(data, g.data, dataSize());
+			}
+			else data = g.data;
 
 			return *this;
 		}
 
 		inline Grid3D &operator=(Grid3D &&g) {
 
-			delete[] data;
+			if(ownsData)
+				delete[] data;
+
+			ownsData = g.ownsData;
 
 			lhw = g.lhw;
 			data = g.data;
