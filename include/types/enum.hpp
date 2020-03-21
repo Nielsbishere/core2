@@ -362,3 +362,16 @@ public:																												\
 #define oicFlags(EnumName, EnumType, ...) _oicEnumBase(EnumName, EnumType, __VA_ARGS__) _oicFlagInterface(EnumName, EnumType) };
 #define oicIterableFlags(EnumName, EnumType, ...) _oicIterableEnumBase(EnumName, EnumType, __VA_ARGS__) _oicFlagInterface(EnumName, EnumType) };
 #define oicExposedFlags(EnumName, EnumType, ...) _oicExposedEnumBase(EnumName, EnumType, __VA_ARGS__) _oicFlagInterface(EnumName, EnumType) };
+
+//A cross platform way of overriding &=, &, |=, |, ^, ^=, ~ on enums
+//oicEnumFlag(MyEnum, u8);
+
+#define enumFlagOverloads(Enum, EnumType) 																\
+inline Enum operator|(const Enum &a, const Enum &b) { return Enum(EnumType(a) | EnumType(b)); }				\
+inline Enum operator&(const Enum &a, const Enum &b) { return Enum(EnumType(a) & EnumType(b)); }				\
+inline Enum operator^(const Enum &a, const Enum &b) { return Enum(EnumType(a) ^ EnumType(b)); }				\
+inline Enum operator~(const Enum &a) { return Enum(~EnumType(a)); }											\
+																										\
+inline Enum &operator|=(Enum &a, const Enum &b) { *(EnumType*)&a = EnumType(a) | EnumType(b); return a; }		\
+inline Enum &operator&=(Enum &a, const Enum &b) { *(EnumType*)&a = EnumType(a) & EnumType(b); return a; }		\
+inline Enum &operator^=(Enum &a, const Enum &b) { *(EnumType*)&a = EnumType(a) ^ EnumType(b); return a; }
