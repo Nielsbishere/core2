@@ -2,6 +2,7 @@ cmake_minimum_required(VERSION 3.13.0)
 project(ocore)
 
 set_property(GLOBAL PROPERTY USE_FOLDERS ON)
+set(CMAKE_INTERPROCEDURAL_OPTIMIZATION TRUE)
 
 set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
@@ -16,13 +17,16 @@ set(CMAKE_SUPPRESS_REGENERATION true)
 file(GLOB_RECURSE ocoreHpp "include/*.hpp")
 file(GLOB_RECURSE ocoreCpp "src/*.cpp")
 
-set(platform windows CACHE STRING "Platform")
+if(WIN32)
+	set(platform windows CACHE STRING "Platform")
+else()
+	set(platform linux CACHE STRING "Platform")
+endif()
+
 set(platforms windows linux osx android ios web)
 set_property(CACHE platform PROPERTY STRINGS ${platforms})
 
-if(WIN32)
-	set(platform windows)
-endif()
+message("-- Targetting platform ${platform}")
 
 file(GLOB_RECURSE platformHpp "platform/${platform}/include/*.hpp")
 file(GLOB_RECURSE platformCpp "platform/${platform}/src/*.cpp")
@@ -65,7 +69,7 @@ if(MSVC)
 
 else()
 
-    target_compile_options(ocore PRIVATE -Wall -Wpedantic -Wextra -Werror)
+    target_compile_options(ocore PRIVATE -Wall -Wextra -Werror -fms-extensions)
 
 	if(NOT ${ARM})
 		target_compile_options(ocore PUBLIC -msse4.1)

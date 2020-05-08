@@ -161,6 +161,7 @@ static constexpr auto _##EnumName##_getValues(){																	\
 																													\
 		constexpr Wrapper(EnumType type) : type(type), isInitialized(true) {}										\
 		constexpr Wrapper() : type(), isInitialized(false) {}														\
+		constexpr Wrapper(const Wrapper &wr): type(wr.type), isInitialized(wr.isInitialized) {}						\
 																													\
 		constexpr operator EnumType() { return type; }																\
 																													\

@@ -2,6 +2,7 @@
 #include "system/system.hpp"
 #include "system/log.hpp"
 #include <algorithm>
+#include <cstring>
 
 namespace oic {
 

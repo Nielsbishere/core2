@@ -15,6 +15,8 @@
 #ifdef _WIN32
 	#include <direct.h>
 	#define S_ISREG(m) (((m) & S_IFMT) == S_IFREG)
+#else
+	#include <sys/stat.h>
 #endif
 
 #ifdef _WIN64
@@ -24,7 +26,7 @@
 	#define fseeko _fseek
 #else
 	#define _mkdir(x) mkdir(x, 0600)
-	#define fopen_s(res, ...) *(res) = fopen(__VA_ARGS__)
+	inline bool fopen_s(FILE **f, const c8 *path, const c8 *perm) { return !(*f = fopen(path, perm)); }
 #endif
 
 //Local file system implementation
@@ -48,14 +50,14 @@ namespace oic {
 		
 			if (f.hasAccess(FileAccess::WRITE)) {
 
-				if (fopen_s(&file, f.path.c_str(), "a+b") != 0 || !file)
+				if (fopen_s(&file, f.path.c_str(), "a+b"))
 					System::log()->fatal("File doesn't exist");
 
 				else isOpen = true;
 
 			} else if (f.hasAccess(FileAccess::READ)) {
 
-				if (fopen_s(&file, f.path.c_str(), "rb") != 0 || !file)
+				if (fopen_s(&file, f.path.c_str(), "rb"))
 					System::log()->fatal("File doesn't exist");
 
 				else isOpen = true;
@@ -134,7 +136,7 @@ namespace oic {
 
 		if (file.isFolder) {
 
-			if (_mkdir(file.path.c_str()) != 0) {
+			if (_mkdir(file.path.c_str())) {
 				System::log()->fatal("Couldn't create local folder");
 				return false;
 			}
@@ -142,7 +144,7 @@ namespace oic {
 		} else {
 
 			FILE *f{};
-			if (fopen_s(&f, file.path.c_str(), "w") != 0 || !f) {
+			if (fopen_s(&f, file.path.c_str(), "w")) {
 				System::log()->fatal("Couldn't create local file");
 				return false;
 			}

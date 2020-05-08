@@ -1,5 +1,7 @@
 #pragma once
 #include "types.hpp"
+#include <cmath>
+#include <algorithm>
 
 //The vectors in this class AREN'T SIMD vectors
 //This is to allow flexibility with padding;

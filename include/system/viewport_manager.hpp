@@ -2,6 +2,8 @@
 #include "types/types.hpp"
 #include "types/vec.hpp"
 #include <mutex>
+#include <cstring>
+#include <algorithm>
 
 namespace oic {
 
@@ -33,8 +35,13 @@ namespace oic {
 
 		inline Vec2i32 size() const { return max - min; }
 
-		inline bool operator==(const Monitor &other) const { return memcmp(this, &other, sizeof(other)) == 0; }
-		inline bool operator!=(const Monitor &other) const { return memcmp(this, &other, sizeof(other)); }
+		inline bool operator==(const Monitor &other) const { 
+			return std::memcmp(this, &other, sizeof(other)) == 0; 
+		}
+
+		inline bool operator!=(const Monitor &other) const {
+			return !operator==(other);
+		}
 
 	};
 

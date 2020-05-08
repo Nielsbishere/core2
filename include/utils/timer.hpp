@@ -1,10 +1,12 @@
 #pragma once
 #include "system/log.hpp"
-#include <intrin.h>
 #include <ctime>
 
 #ifdef _WIN32
+	#include <intrin.h>
 	#define localtime_r(t, tp) localtime_s(&tp, &t)
+#else
+	#include <x86intrin.h>
 #endif
 
 namespace oic {

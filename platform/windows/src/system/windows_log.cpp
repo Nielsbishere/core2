@@ -18,7 +18,7 @@ namespace oic::windows {
 	//Printing colored text
 
 	template<bool outputToDebugConsole = false>
-	void print(const c8 *cstr, WORD color) {
+	inline void print(const c8 *cstr, WORD color) {
 
 		//Get thread
 		u32 thread = GetCurrentThreadId();

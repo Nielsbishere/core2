@@ -3,6 +3,17 @@
 
 namespace oic {
 
+	//Magic numbers of FNV-1a
+	template<typename T> struct FNV {};
+
+	template<> struct FNV<u64> { 
+		static constexpr u64 prime = 0x00000100000001B3, offset = 0xcbf29ce484222325;
+	};
+
+	template<> struct FNV<u32> { 
+		static constexpr u32 prime = 0x01000193, offset = 0x811c9dc5;
+	};
+
 	struct Hash {
 
 		//Result of a hash as base64 string
@@ -26,6 +37,11 @@ namespace oic {
 		//Generate readable 64-bit uint from string
 		static inline HashString hash(const String &str);
 
+		template<typename T>
+		static inline void fnv1a(T &seed, T a);
+
+		static inline u64 hash64(const u64 a, const u64 b, u64 seed = FNV<u64>::offset);
+		static inline u32 hash32(const u32 a, const u32 b, u32 seed = FNV<u32>::offset);
 	};
 
 	//Implementations
@@ -78,6 +94,23 @@ namespace oic {
 			result.c[j] = mapping[(hash >> (6 * j)) & 0x3F];
 
 		return result;
+	}
+
+	template<typename T>
+	inline void Hash::fnv1a(T &seed, T a) {
+		seed = (seed ^ a) * FNV<T>::prime;
+	}
+
+	inline u64 Hash::hash64(const u64 a, const u64 b, u64 seed) { 
+		fnv1a(seed, a);
+		fnv1a(seed, b);
+		return seed;
+	}
+
+	inline u32 Hash::hash32(const u32 a, const u32 b, u32 seed) { 
+		fnv1a(seed, a);
+		fnv1a(seed, b);
+		return seed;
 	}
 }
 

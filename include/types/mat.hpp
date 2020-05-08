@@ -303,6 +303,7 @@ template<typename T>
 struct Mat2x2 : public Mat<T, 2, 2> {
 
 	using Mat<T, 2, 2>::Mat;
+	using Mat<T, 2, 2>::f;
 
 	constexpr inline Mat2x2(const Mat<T, 2, 2> &dat) : Mat<T, 2, 2>(dat) {}
 	constexpr inline Mat2x2(Mat<T, 2, 2> &&dat) : Mat<T, 2, 2>(dat) {}
@@ -327,6 +328,7 @@ template<typename T>
 struct Mat3x3 : public Mat<T, 3, 3> {
 
 	using Mat<T, 3, 3>::Mat;
+	using Mat<T, 3, 3>::f;
 
 	constexpr inline Mat3x3(const Mat<T, 3, 3> &dat) : Mat<T, 3, 3>(dat) {}
 	constexpr inline Mat3x3(Mat<T, 3, 3> &&dat) : Mat<T, 3, 3>(dat) {}
@@ -354,6 +356,8 @@ template<typename T>
 struct Mat4x4 : public Mat<T, 4, 4> {
 
 	using Mat<T, 4, 4>::Mat;
+	using Mat<T, 4, 4>::f;
+	using Mat<T, 4, 4>::toData;
 
 	constexpr inline Mat4x4(const Mat<T, 4, 4> &dat) : Mat<T, 4, 4>(dat) {}
 	constexpr inline Mat4x4(Mat<T, 4, 4> &&dat) : Mat<T, 4, 4>(dat) {}

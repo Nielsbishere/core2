@@ -168,6 +168,9 @@ using Array = std::array<T, siz>;
 template<typename K, typename V>
 using HashMap = std::unordered_map<K, V>;
 
+template<typename First, typename Second>
+using Pair = std::pair<First, Second>;
+
 #include <bitset>
 
 template<usz siz>
