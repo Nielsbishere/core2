@@ -15,18 +15,19 @@ namespace oic {
 		return directory.substr(0, usz(size));
 	}
 
-	WFileSystem::WFileSystem(): LocalFileSystem(getWorkingDirectory()) {
+	WFileSystem::WFileSystem() : LocalFileSystem(getWorkingDirectory()) {
 		initFiles();
 		initLut();
-		initFileWatcher();
 	}
 
 	WFileSystem::~WFileSystem() {
-		running = false;
-		thread.wait();
+		for (auto &thr : threads) {
+			running[thr.first] = false;
+			thr.second.wait();
+		}
 	}
 
-	File *WFileSystem::openVirtual(FileInfo &) {
+	File *WFileSystem::openVirtual(const FileInfo &) {
 		//TODO: Virtual files
 		oic::System::log()->fatal("Virtual files not supported yet");
 		return nullptr;
@@ -35,48 +36,49 @@ namespace oic {
 	String getPath(FILE_NOTIFY_INFORMATION *fni) {
 
 		usz len = fni->FileNameLength / 2;
-		String path(len + 2, '/'), newPath;
-		path[0] = '.';
+		String path(len, '/'), newPath;
 
 		for (usz i = 0; i < len; ++i)
-			path[i + 2] = fni->FileName[i] == L'\\' ? '/' : c8(fni->FileName[i]);
+			path[i] = fni->FileName[i] == L'\\' ? '/' : c8(fni->FileName[i]);
 
 		return path;
 	}
 
-	void WFileSystem::watchFileSystem(WFileSystem *fs) {
+	void WFileSystem::watchFileSystem(WFileSystem *fs, const String &subPath) {
+
+		const String watchPath = fs->getLocalPath() + "/" + subPath;
 
 		HANDLE directory = CreateFileA(
-			fs->getLocalPath().c_str(), GENERIC_READ, 
-			FILE_SHARE_READ | FILE_SHARE_WRITE | FILE_SHARE_DELETE, 
+			watchPath.c_str(), GENERIC_READ,
+			FILE_SHARE_READ | FILE_SHARE_WRITE | FILE_SHARE_DELETE,
 			NULL, OPEN_EXISTING, FILE_FLAG_BACKUP_SEMANTICS | FILE_FLAG_OVERLAPPED, NULL
 		);
 
 		if (directory == INVALID_HANDLE_VALUE)
 			System::log()->fatal("The folder path is invalid");
 
-		constexpr usz bufferSize = 16_MiB;
+		constexpr usz bufferSize = 4_MiB;
 		u8 *buffer = oic::System::allocator()->allocArray<u8>(bufferSize);
 
 		HANDLE iocp = CreateIoCompletionPort(directory, NULL, NULL, 1);
 		HRESULT hr = GetLastError();
 
-		if(hr != S_OK)
+		if (hr != S_OK)
 			System::log()->fatal("The io completion port couldn't be created");
 
 		OVERLAPPED overlapped;
 		ZeroMemory(&overlapped, sizeof(overlapped));
 
-		while (fs->running) {
+		while (fs->running[subPath]) {
 
-			if(!ReadDirectoryChangesW(
+			if (!ReadDirectoryChangesW(
 				directory, buffer, bufferSize, TRUE,
 				FILE_NOTIFY_CHANGE_FILE_NAME | FILE_NOTIFY_CHANGE_DIR_NAME | FILE_NOTIFY_CHANGE_LAST_WRITE,
 				NULL, &overlapped, NULL
 			))
 				System::log()->fatal("Couldn't read directory changes");
 
-			DWORD returned{};
+			DWORD returned {};
 			LPOVERLAPPED po;
 			ULONG_PTR key;
 
@@ -90,63 +92,59 @@ namespace oic {
 				System::log()->fatal("The queued status is illegal");
 			}
 
-			FILE_NOTIFY_INFORMATION *fni = (FILE_NOTIFY_INFORMATION*)buffer;
+			FILE_NOTIFY_INFORMATION *fni = (FILE_NOTIFY_INFORMATION *)buffer;
 			struct stat st;
 
-			System::files()->begin();
+			System::files()->lock();
 
 			do {
 
 				String newPath;
-				String path = getPath(fni);
+				String path = subPath + "/" + getPath(fni);
 
 				switch (fni->Action) {
 
-					case FILE_ACTION_REMOVED:
+				case FILE_ACTION_REMOVED:
+					fs->remove(path, true);
+					break;
 
-						if (!fs->exists(path))
-							System::log()->fatal("The removed file path is invalid");
+				case FILE_ACTION_ADDED:
 
-						fs->rem(path);
-						break;
+					stat(path.c_str(), &st);
 
-					case FILE_ACTION_ADDED:
+					fs->add(path, !S_ISREG(st.st_mode), true);
+					break;
 
-						stat(path.c_str(), &st);
+				case FILE_ACTION_MODIFIED:
 
-						fs->add(path, !S_ISREG(st.st_mode));
-						break;
+					if (!fs->exists(path))
+						System::log()->fatal("The modified file path is invalid");
 
-					case FILE_ACTION_MODIFIED:
+					fs->update(path);
+					break;
 
-						if (!fs->exists(path))
-							System::log()->fatal("The modified file path is invalid");
+				case FILE_ACTION_RENAMED_OLD_NAME:
 
-						fs->upd(path);
-						break;
+					fni = (FILE_NOTIFY_INFORMATION*)((u8*)fni + fni->NextEntryOffset);
 
-					case FILE_ACTION_RENAMED_OLD_NAME:
+					if (fni->Action != FILE_ACTION_RENAMED_NEW_NAME)
+						System::log()->fatal("The rename action requires an old and new name in that sequence");
 
-						fni = (FILE_NOTIFY_INFORMATION*)((u8*)fni + fni->NextEntryOffset);
+					newPath = subPath + "/" + getPath(fni);
 
-						if (fni->Action != FILE_ACTION_RENAMED_NEW_NAME)
-							System::log()->fatal("The rename action requires an old and new name in that sequence");
+					fs->mov(path, newPath, true);
+					break;
 
-						newPath = getPath(fni);
-
-						fs->mov(path, newPath);
-						break;
-
-					default:
-						System::log()->fatal("The file operation is illegal");
+				default:
+					System::log()->fatal("The file operation is illegal");
 
 				}
 
-				fni = fni->NextEntryOffset ? (FILE_NOTIFY_INFORMATION*)((u8*)fni + fni->NextEntryOffset) : nullptr;
+				fni = fni->NextEntryOffset ? (FILE_NOTIFY_INFORMATION *)((u8 *)fni + fni->NextEntryOffset) : nullptr;
 
 			} while (fni);
 
-			System::files()->end();
+			System::files()->unlock();
 
 		}
 
@@ -155,24 +153,29 @@ namespace oic {
 		free(buffer);
 	}
 
-	void WFileSystem::initFileWatcher() {
-		running = true;
-		thread = std::async(watchFileSystem, this);
+	void WFileSystem::startFileWatcher(const String &path) {
+		running[path] = true;
+		threads[path] = std::move(std::async(watchFileSystem, this, path));
 	}
-	
-	void WFileSystem::initFiles_(const String &ou, FileHandle parent) {
+
+	void WFileSystem::endFileWatcher(const String &path) {
+		running[path] = false;
+		threads[path] = std::move(std::async(watchFileSystem, this, path));
+	}
+
+	template<bool includeFiles, bool includeFolders>
+	inline List<String> findFileObjects(const String &path) {
 
 		//Find all files
 
-		WIN32_FIND_DATAA data {};
-		HANDLE file = FindFirstFileA((ou + "/*").c_str(), &data);
+		WIN32_FIND_DATAA data{};
+		HANDLE file = FindFirstFileA((path + "/*").c_str(), &data);
 
 		if (file == INVALID_HANDLE_VALUE)
 			System::log()->fatal("Invalid folder to scan");
 
-		List<String> directories, files;
-		directories.reserve(16);
-		files.reserve(16);
+		List<String> objs;
+		objs.reserve(32);
 
 		do {
 
@@ -180,75 +183,34 @@ namespace oic {
 			if (data.cFileName[0] == '.' && data.cFileName[2] == '\0' && (data.cFileName[1] == '.' || data.cFileName[1] == '\0'))
 				continue;
 
-			if(data.dwFileAttributes & FILE_ATTRIBUTE_DIRECTORY)
-				directories.push_back(data.cFileName);
-			else
-				files.push_back(data.cFileName);
+			if (data.dwFileAttributes & FILE_ATTRIBUTE_DIRECTORY) {
+
+				if constexpr(includeFolders)
+					objs.push_back(data.cFileName);
+
+			} else if constexpr(includeFiles)
+				objs.push_back(data.cFileName);
 
 		} while (FindNextFileA(file, &data));
 
 		FindClose(file);
+		return objs;
+	}
+	
+	List<String> WFileSystem::localDirectories(const String &path) const {
+		return findFileObjects<false, true>(path);
+	}
 
-		//Init all directories
+	List<String> WFileSystem::localFileObjects(const String &path) const {
+		return findFileObjects<true, true>(path);
+	}
 
-		FileInfo *p = &get(parent, true);
-		FileHandle folderHint = p->folderHint = size(true);
-
-		for (String &dir : directories) {
-
-			FileInfo subdir = {
-				p->path + "/" + dir, dir,
-				0, 0, nullptr, 0,
-				p->id, size(true),
-				0, 0, 0,
-				p->access,
-				true
-			};
-
-			initFile(subdir);
-			this->files(true).push_back(subdir);
-
-			p = &get(parent, true);
-
-		}
-
-		//Init all files
-
-		p->fileHint = size(true);
-
-		for (String &fil : files) {
-
-			FileInfo subfil = {
-				p->path + "/" + fil, fil,
-				0, 0, nullptr, 0,
-				p->id, size(true),
-				0, 0, 0,
-				p->access,
-				false
-			};
-
-			initFile(subfil);
-			this->files(true).push_back(subfil);
-
-			p = &get(parent, true);
-		}
-
-		//Recursive
-
-		p->fileEnd = size(true);
-
-		FileHandle i = folderHint;
-
-		for (String &dir : directories) {
-			initFiles_(ou + "/" + dir, i);
-			++i;
-		}
-
+	List<String> WFileSystem::localFiles(const String &path) const {
+		return findFileObjects<true, false>(path);
 	}
 
 	void WFileSystem::initFiles() {
-		initFile(get(0, true));
-		initFiles_(getLocalPath(), 0);
+		//TODO: Get virtual files
 	}
 
 }

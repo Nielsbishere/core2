@@ -68,7 +68,7 @@ struct Vec : public TVecStorage<T, N> {
 
 	//Arithmetic functions
 	
-	constexpr inline Vec(const T &t) {
+	constexpr inline Vec(const T &t): TVecStorage<T, N>{} {
 		for (usz i = 0; i < N; ++i) arr[i] = t;
 	}
 	
@@ -153,8 +153,9 @@ struct Vec : public TVecStorage<T, N> {
 		return *this / magnitude();
 	}
 	
-	constexpr inline T prod() const {
-		T v = T(1);
+	template<typename T2 = T>
+	constexpr inline T2 prod() const {
+		T2 v = T2(1);
 		for (usz i = 0; i < N; ++i) v *= arr[i];
 		return v;
 	}

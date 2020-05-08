@@ -13,17 +13,20 @@ namespace oic {
 
 	protected:
 
-		File *openVirtual(FileInfo &file) final override;
+		File *openVirtual(const FileInfo &file) final override;
 
-		void initFileWatcher() final override;
+		void startFileWatcher(const String &location) final override;
+		void endFileWatcher(const String &location) final override;
 		void initFiles() final override;
 
-		void initFiles_(const String &ou, FileHandle file);
+		List<String> localDirectories(const String &path) const final override;
+		List<String> localFileObjects(const String &path) const final override;
+		List<String> localFiles(const String &path) const final override;
 
-		static void watchFileSystem(WFileSystem *fs);
+		static void watchFileSystem(WFileSystem *fs, const String &path);
 
-		std::future<void> thread;
-		bool running = false;
+		HashMap<String, std::future<void>> threads;
+		HashMap<String, bool> running;
 
 	};
 

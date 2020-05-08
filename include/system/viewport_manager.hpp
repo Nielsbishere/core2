@@ -48,12 +48,21 @@ namespace oic {
 	struct ViewportInfo {
 
 		enum Hint : u8 {
+
+			//Init hints
+
 			NONE,
 			FULL_SCREEN,
 			NO_MENU,
 			NOT_RESIZABLE = 4,
 			NOT_MINIMIZABLE = 8,
-			HANDLE_INPUT = 16
+			HANDLE_INPUT = 16,
+
+			//Runtime hints
+
+			IS_FOCUSSED = 32,
+			CAPTURE_CURSOR = 64,
+			IS_MINIMIZED = 128
 		};
 
 		//The name of this layer

@@ -1,6 +1,7 @@
 #pragma once
 #include "input_device.hpp"
 #include "types/enum.hpp"
+#define plimpl
 
 namespace oic {
 
@@ -18,6 +19,8 @@ namespace oic {
 		MouseAxis, AxisHandle,
 		AXIS_X, AXIS_Y, AXIS_DELTA_X, AXIS_DELTA_Y, AXIS_WHEEL
 	);
+
+	struct ViewportInfo;
 
 	//
 
@@ -53,7 +56,8 @@ namespace oic {
 		}
 
 		//Platform and device dependent
-		bool isSupported(Handle handle) const final override ;
+
+		plimpl bool isSupported(Handle handle) const final override ;
 	};
 
 }
