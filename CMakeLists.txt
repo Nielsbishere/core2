@@ -76,3 +76,44 @@ else()
 	endif()
 
 endif()
+
+# Ways to add virtual files
+
+set_property(GLOBAL PROPERTY virtualFiles "")
+
+include(CMakeParseArguments)
+
+macro(add_virtual_files)
+
+	set(_OPTIONS)
+    set(_ONE_VALUE DIRECTORY NAME)
+    set(_MULTI_VALUE FILES)
+
+    cmake_parse_arguments(_VFILES "${_OPTIONS}" "${_ONE_VALUE}" "${_MULTI_VALUE}" ${ARGN})
+
+	get_property(vfileList GLOBAL PROPERTY virtualFiles)
+
+	if(_VFILES_FILES)
+		foreach(file ${_VFILES_FILES})
+			set(vfileList ${vfileList}\ \"${_VFILES_DIRECTORY}/${file}\"|\"${_VFILES_NAME}/${file}\")
+		endforeach()
+    else()
+        message(FATAL_ERROR "FindLibs: 'NAMES' argument required.")
+    endif()
+	
+	set_property(GLOBAL PROPERTY virtualFiles ${vfileList})
+
+endmacro()
+
+add_virtual_files(
+	DIRECTORY
+		${CMAKE_CURRENT_SOURCE_DIR}/../res
+	NAME
+		core2
+	FILES
+		shaders/test.frag
+		shaders/test.vert
+)
+
+get_property(vfileList GLOBAL PROPERTY virtualFiles)
+message(Testing: ${vfileList})
