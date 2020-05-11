@@ -133,10 +133,8 @@ constexpr usz usz_BIT_SHIFT = usz_BYTES == 8 ? 6 : 5;	//1 << usz_BIT_SHIFT == us
 
 template<typename T>
 static inline void destroy(T *&ptr) {
-	if (ptr) {
-		delete ptr;
-	    ptr = nullptr; 
-    }
+	delete ptr;
+	ptr = nullptr; 
 }
 
 template<typename ...args>

@@ -6,7 +6,7 @@ set(CMAKE_INTERPROCEDURAL_OPTIMIZATION TRUE)
 
 set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
-set(CMAKE_CXX_EXTENSIONS OFF)
+set(CMAKE_CXX_EXTENSIONS ON)
 
 set(CMAKE_ARCHIVE_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/lib)
 set(CMAKE_LIBRARY_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/lib)
@@ -26,7 +26,7 @@ endif()
 set(platforms windows linux osx android ios web)
 set_property(CACHE platform PROPERTY STRINGS ${platforms})
 
-message("-- Targetting platform ${platform}")
+message("-- Targeting platform ${platform}")
 
 # TODO: On lost focus just reset all input
 
@@ -53,30 +53,20 @@ source_group("Platform Source Files" FILES ${platformCpp})
 
 if(${CMAKE_SYSTEM_PROCESSOR} MATCHES "arm")
 	set(ARM true)
-else()
-	add_definitions(-D__SSE__)
-	add_definitions(-D__SSE2__)
-	add_definitions(-D__SSE3__)
-	add_definitions(-D__SSSE3__)
-	add_definitions(-D__SSE4_1__)
 endif()
 
 if(MSVC)
-
     target_compile_options(ocore PRIVATE /W4 /WX /MD /MP /wd4201 /EHsc /GR)
-
-	if(NOT ${ARM})
-		target_compile_options(ocore PUBLIC /arch:SSE4.1)
-	endif()
-
 else()
-
     target_compile_options(ocore PRIVATE -Wall -Wextra -Werror -fms-extensions)
+endif()
 
-	if(NOT ${ARM})
-		target_compile_options(ocore PUBLIC -msse4.1)
+if(NOT ${CMAKE_SYSTEM_PROCESSOR} MATCHES "arm")
+	if(MSVC)
+	    target_compile_options(ocore PUBLIC /arch:AVX2)
+	else()
+	    target_compile_options(ocore PUBLIC -mavx2)
 	endif()
-
 endif()
 
 # Ways to add virtual files
