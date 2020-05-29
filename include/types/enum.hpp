@@ -367,12 +367,15 @@ public:																												\
 //A cross platform way of overriding &=, &, |=, |, ^, ^=, ~ on enums
 //oicEnumFlag(MyEnum, u8);
 
-#define enumFlagOverloads(Enum, EnumType) 																\
-inline Enum operator|(const Enum &a, const Enum &b) { return Enum(EnumType(a) | EnumType(b)); }				\
-inline Enum operator&(const Enum &a, const Enum &b) { return Enum(EnumType(a) & EnumType(b)); }				\
-inline Enum operator^(const Enum &a, const Enum &b) { return Enum(EnumType(a) ^ EnumType(b)); }				\
-inline Enum operator~(const Enum &a) { return Enum(~EnumType(a)); }											\
-																										\
-inline Enum &operator|=(Enum &a, const Enum &b) { *(EnumType*)&a = EnumType(a) | EnumType(b); return a; }		\
-inline Enum &operator&=(Enum &a, const Enum &b) { *(EnumType*)&a = EnumType(a) & EnumType(b); return a; }		\
-inline Enum &operator^=(Enum &a, const Enum &b) { *(EnumType*)&a = EnumType(a) ^ EnumType(b); return a; }
+#define enumFlagOverloads(Enum) 																																			\
+inline constexpr Enum operator|(const Enum &a, const Enum &b) { return Enum(std::underlying_type_t<Enum>(a) | std::underlying_type_t<Enum>(b)); }							\
+inline constexpr Enum operator&(const Enum &a, const Enum &b) { return Enum(std::underlying_type_t<Enum>(a) & std::underlying_type_t<Enum>(b)); }							\
+inline constexpr Enum operator^(const Enum &a, const Enum &b) { return Enum(std::underlying_type_t<Enum>(a) ^ std::underlying_type_t<Enum>(b)); }							\
+inline constexpr Enum operator~(const Enum &a) { return Enum(~std::underlying_type_t<Enum>(a)); }																			\
+																																											\
+inline Enum &operator|=(Enum &a, const Enum &b) { *(std::underlying_type_t<Enum>*)&a = std::underlying_type_t<Enum>(a) | std::underlying_type_t<Enum>(b); return a; }		\
+inline Enum &operator&=(Enum &a, const Enum &b) { *(std::underlying_type_t<Enum>*)&a = std::underlying_type_t<Enum>(a) & std::underlying_type_t<Enum>(b); return a; }		\
+inline Enum &operator^=(Enum &a, const Enum &b) { *(std::underlying_type_t<Enum>*)&a = std::underlying_type_t<Enum>(a) ^ std::underlying_type_t<Enum>(b); return a; }		\
+																																											\
+inline constexpr std::underlying_type_t<Enum> AsValue(const Enum &a) { return std::underlying_type_t<Enum>(a); }															\
+inline constexpr bool HasFlags(const Enum &a, const Enum &b) { return (a & b) == b; }
