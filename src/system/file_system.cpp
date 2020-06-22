@@ -565,11 +565,12 @@ namespace oic {
 			rename(info, npath, true);
 
 			if (info.isFolder())
-				foreachFile(path, [](FileSystem *f, const FileInfo fi, void *np) -> void {
+				foreachFile(path, [](FileSystem *f, const FileInfo &fii, void *np) -> void {
 
-				f->rename(fi, (const char *)np + String("/") + fi.name, false);
+					const FileInfo fi = fii;
+					f->rename(fi, (const char*)np + String("/") + fi.name, false);
 
-			}, true, (void *)npath.c_str());
+				}, true, (void*)npath.c_str());
 
 		}
 

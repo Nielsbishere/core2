@@ -16,11 +16,16 @@ namespace oic {
 	//IS_VIRTUAL: The file only exists in memory
 	//IS_FOLDER: The file is a folder
     enum class FileFlags : u8 {
+
 		NONE = 0x0,
+
         READ = 0x1,
         WRITE = 0x2,
 		IS_VIRTUAL = 0x4,
-		IS_FOLDER = 0x8
+		IS_FOLDER = 0x8,
+
+		VIRTUAL_FILE = READ | IS_VIRTUAL,
+		VIRTUAL_FOLDER = IS_FOLDER | READ | IS_VIRTUAL
     };
 
 	//!The types of file changes
@@ -106,10 +111,10 @@ namespace oic {
 	class FileSystem;
 
     //!A callback for handling file changes and loops
-    using FileCallback = void (*)(FileSystem*, const FileInfo, void*);
+    using FileCallback = void (*)(FileSystem*, const FileInfo&, void*);
 
     //!A callback for handling file changes and loops
-    using FileChangeCallback = void (*)(FileSystem*, const FileInfo, FileChange, void*);
+    using FileChangeCallback = void (*)(FileSystem*, const FileInfo&, FileChange, void*);
 
 	//!A virtual or physical file
 	class File {

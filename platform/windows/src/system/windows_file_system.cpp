@@ -27,10 +27,68 @@ namespace oic {
 		}
 	}
 
-	File *WFileSystem::openVirtual(const FileInfo &) {
-		//TODO: Virtual files
-		oic::System::log()->fatal("Virtual files not supported yet");
-		return nullptr;
+	class WVirtualFile : public File {
+
+	private:
+
+		HGLOBAL file{};
+		const c8 *data{};
+
+		virtual ~WVirtualFile() { 
+			if (file) {
+				UnlockResource(file);
+				FreeResource(file);
+				file = nullptr;
+				data = nullptr;
+			}
+		}
+
+	public:
+
+		WVirtualFile(FileSystem *fs, const FileInfo &f, ns, ns): File(fs, f) {
+
+			if (!f.hasAccess(FileAccess::WRITE) && f.dataExt) {
+
+				HRSRC rc = (HRSRC) f.dataExt;
+
+				file = LoadResource(nullptr, rc);
+
+				if (file) {
+
+					data = (const c8*)LockResource(file);
+
+					if (!data) {
+						FreeResource(rc);
+						file = nullptr;
+					}
+
+					else isOpen = true;
+				}
+			}
+
+			if(!isOpen)
+				System::log()->fatal("File can't be opened");
+		}
+
+		bool read(void *v, FileSize size, FileSize offset) const final override {
+
+			if (offset + size > f.fileSize) {
+				System::log()->fatal("File read is out of bounds");
+				return false;
+			}
+
+			std::memcpy(v, data + offset, size);
+			return true;
+		}
+
+		//Write to file isn't allowed with virtual files
+
+		bool write(const void*, FileSize, FileSize) final override { return false; }
+		bool resize(FileSize) final override { return false; }
+	};
+
+	File *WFileSystem::openVirtual(const FileInfo &info) {
+		return new WVirtualFile(this, info, 0, 0);
 	}
 
 	String getPath(FILE_NOTIFY_INFORMATION *fni) {
@@ -210,7 +268,159 @@ namespace oic {
 	}
 
 	void WFileSystem::initFiles() {
-		//TODO: Get virtual files
+
+		//Get root file
+
+		HRSRC root = FindResourceA(nullptr, "0", RT_RCDATA);
+		if (!root) return;
+
+		HGLOBAL rootHandle = LoadResource(nullptr, root);
+		if (!rootHandle) return;
+
+		const c8 *data = (const c8*)LockResource(rootHandle);
+		if (!data) { FreeResource(rootHandle); return; }
+
+		usz end = strlen(data);
+
+		List<FileInfo> files;
+		files.push_back(virtualFiles[0]);
+
+		files[0].fileHint = u32_MAX;
+		files[0].fileEnd = u32_MAX;
+		files[0].folderHint = u32_MAX;
+
+		HashMap<u32, u32> unorderedIdToId;
+
+		usz prev{}, i0{}, i1{};
+
+		for (usz i = 0; i < end; ++i) {
+
+			c8 c = data[i];
+
+			//Get first two spaces
+
+			if (c == ' ') {
+				if (!i0)		i0 = i;
+				else if(!i1)	i1 = i;
+			}
+
+			//Flush file
+
+			if (c == '\n') {
+
+				usz k = data[i - 1] == '\r' ? i - 1 : i;
+
+				bool isFile = data[k - 1] == '|';
+				String name(data + i1 + 1, data + k - isFile);
+
+				u32 parent = std::stoi(String(data + i0 + 1, data + i1));
+
+				String primaryId = String(data + prev, data + i0);
+				u32 primaryIdi = std::stoi(primaryId);
+
+				//Windows can't handle numbers as file names
+				//So we just use an underscore
+
+				String primary = '_' + primaryId;
+
+				auto file = isFile ?
+					FindResourceA(nullptr, primary.c_str(), RT_RCDATA) : nullptr;
+
+				HRESULT hr = GetLastError();
+				
+				if (FAILED(hr)) {
+					oic::System::log()->warn("Missing symbol " + primary);
+					continue;
+				}
+
+				//Find the last file that has the same parent
+				//And insert after; otherwise, insert at end
+				//If it's a folder, stop when it first encounters a file
+
+				u32 j = 1;
+				bool inFolder{};
+
+				for (; j < u32(files.size()); ++j)
+
+					if (!isFile && inFolder && !files[j].isFolder())
+						break;
+
+					else if (files[j].parent == parent)
+						inFolder = true;
+
+					else if (inFolder)
+						break;
+
+				//Correct ids
+
+				for (auto &map : unorderedIdToId)
+					if (map.second >= j)
+						++map.second;
+
+				//Insert this entry
+
+				unorderedIdToId[primaryIdi] = j;
+
+				files.insert(files.begin() + j, FileInfo{
+					name,
+					name,
+					0,
+					file,
+					isFile ? SizeofResource(nullptr, file) : 0,
+					parent,
+					u32_MAX,
+					u32_MAX,
+					u32_MAX,
+					isFile ? FileFlags::VIRTUAL_FILE : FileFlags::VIRTUAL_FOLDER
+				});
+
+				i0 = i1 = 0;
+				prev = i + 1;
+			}
+		}
+
+		//Update references to parents and file hint if needed
+
+		for(u32 i = 1; i < u32(files.size()); ++i) {
+
+			auto &f = files[i];
+
+			//Lookup real parent
+
+			u32 parent = unorderedIdToId[f.parent];
+
+			f.parent = parent;
+			auto &p = files[parent];
+
+			if (f.isFolder()) {
+
+				//Since folders are ordered first, we only have to set folderHint and fileEnd to i + 1
+
+				if (p.folderHint == u32_MAX)
+					p.folderHint = i;
+
+				p.fileHint = p.fileEnd = i + 1;
+			}
+			else {
+
+				if (p.folderHint == u32_MAX)
+					p.folderHint = i;
+
+				if (p.fileHint == u32_MAX)
+					p.fileHint = i;
+
+				p.fileEnd = i + 1;
+			}
+
+		}
+
+		//Done with parsing root file
+
+		virtualFiles = files;
+
+		UnlockResource(rootHandle);
+		FreeResource(rootHandle);
+
 	}
 
 }
