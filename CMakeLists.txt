@@ -79,7 +79,7 @@ include(CMakeParseArguments)
 # Example:
 # addVirtualFiles(
 #	DIRECTORY
-#			${CMAKE_SOURCE_DIR}/res/test_shaders
+#			${CMAKE_CURRENT_SOURCE_DIR}/res/test_shaders
 #		NAME
 #			shaders
 #		FILES
