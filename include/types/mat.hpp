@@ -438,8 +438,8 @@ struct MatOT : public Mat<T, W, H> {
 
 		if constexpr (H == 4)
 			return Mat4x4<T>(Vec4<T>(scl.x, scl.y, scl.z, 1));
-
-		return Mat4x3<T>(Vec3<T>(scl.x, scl.y, scl.z));
+		else
+			return Mat4x3<T>(Vec3<T>(scl.x, scl.y, scl.z));
 	}
 
 	static constexpr inline MatOT transform(
