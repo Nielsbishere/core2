@@ -437,9 +437,9 @@ struct MatOT : public Mat<T, W, H> {
 	static constexpr inline MatOT scale(const Vec3<T> &scl) {
 
 		if constexpr (H == 4)
-			return Vec4<T>(scl.x, scl.y, scl.z, 1);
+			return Mat4x4(Vec4<T>(scl.x, scl.y, scl.z, 1));
 
-		return Vec3<T>(scl.x, scl.y, scl.z);
+		return Mat4x3(Vec3<T>(scl.x, scl.y, scl.z));
 	}
 
 	static constexpr inline MatOT transform(
