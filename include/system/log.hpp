@@ -159,5 +159,16 @@ namespace oic {
 
 	//Asserts
 
-	#define oicAssert(error, ...) if(!(__VA_ARGS__)) oic::System::log()->fatal("Assert failed: " error);
+	template<typename ...args>
+	static void _assert(String error, bool b, const args &...arg) {
+		if(!b)
+			oic::System::log()->println<oic::LogLevel::FATAL>("Assert failed: ", error, arg...);
+	}
+
+	#ifndef NDEBUG
+		#define oicAssert(error, ...) oic::_assert(error, bool(__VA_ARGS__), " at " __FILE__ "::", __func__, ":", std::to_string(__LINE__))
+	#else
+		#define oicAssert(error, ...) oic::_assert(error, bool(__VA_ARGS__))
+	#endif
+
 }

@@ -9,35 +9,35 @@ namespace oic {
 
 		WKey, u16,
 
-		KEY_0 = 0x30, KEY_1, KEY_2, KEY_3, KEY_4, KEY_5, KEY_6, KEY_7, KEY_8, KEY_9,
-		KEY_A = 0x41, KEY_B, KEY_C, KEY_D, KEY_E, KEY_F, KEY_G, KEY_H, KEY_I, KEY_J,
-		KEY_K, KEY_L, KEY_M, KEY_N, KEY_O, KEY_P, KEY_Q, KEY_R, KEY_S, KEY_T,
-		KEY_U, KEY_V, KEY_W, KEY_X, KEY_Y, KEY_Z,
+		Key_0 = 0x30, Key_1, Key_2, Key_3, Key_4, Key_5, Key_6, Key_7, Key_8, Key_9,
+		Key_a = 0x41, Key_b, Key_c, Key_d, Key_e, Key_f, Key_g, Key_h, Key_i, Key_j,
+		Key_k, Key_l, Key_m, Key_n, Key_o, Key_p, Key_q, Key_r, Key_s, Key_t,
+		Key_u, Key_v, Key_w, Key_x, Key_y, Key_z,
 
-		KEY_BACKSPACE = 0x08, KEY_SPACE = 0x20, KEY_TAB = 0x09, KEY_SHIFT = 0x10, KEY_CTRL = 0x11, KEY_ALT = 0x12,
-		KEY_PAUSE = 0x13, KEY_CAPS_LOCK = 0x14, KEY_ESCAPE = 0x1B, KEY_PAGE_UP = 0x21, KEY_PAGE_DOWN = 0x22,
-		KEY_END = 0x23, KEY_HOME = 0x24, KEY_SELECT = 0x29, KEY_PRINT = 0x2A, KEY_EXECUTE = 0x2B, KEY_PRINT_SCREEN = 0x2C,
-		KEY_INSERT = 0x2D, KEY_DELETE = 0x2E, KEY_HELP = 0x2F, KEY_MENU = 0x5B, KEY_NUM_LOCK = 0x90, KEY_SCROLL_LOCK = 0x91,
-		KEY_APPS = 0x5D, KEY_BACK = 0xA6, KEY_FORWARD = 0xA7, KEY_SLEEP = 0x5F, KEY_REFRESH = 0xA8, KEY_STOP = 0xA9, KEY_SEARCH = 0xAA,
-		KEY_FAVORITES = 0xAB, KEY_START = 0xAC, KEY_MUTE = 0xAD, KEY_VOLUME_DOWN = 0xAE, KEY_VOLUME_UP = 0xAF,
-		KEY_SKIP = 0xB0, KEY_PREVIOUS = 0xB1, KEY_CLEAR = 0xFE, KEY_ZOOM = 0xFB, KEY_ENTER = 0x0D,
+		Key_backspace = 0x08, Key_space = 0x20, Key_tab = 0x09, Key_shift = 0x10, Key_ctrl = 0x11, Key_alt = 0x12,
+		Key_pause = 0x13, Key_caps_lock = 0x14, Key_escape = 0x1b, Key_page_up = 0x21, Key_page_down = 0x22,
+		Key_end = 0x23, Key_home = 0x24, Key_select = 0x29, Key_print = 0x2a, Key_execute = 0x2b, Key_print_screen = 0x2c,
+		Key_insert = 0x2d, Key_delete = 0x2e, Key_help = 0x2f, Key_menu = 0x5b, Key_num_lock = 0x90, Key_scroll_lock = 0x91,
+		Key_apps = 0x5d, Key_back = 0xa6, Key_forward = 0xa7, Key_sleep = 0x5f, Key_refresh = 0xa8, Key_stop = 0xa9, Key_search = 0xaa,
+		Key_favorites = 0xab, Key_start = 0xac, Key_mute = 0xad, Key_volume_down = 0xae, Key_volume_up = 0xaf,
+		Key_skip = 0xb0, Key_previous = 0xb1, Key_clear = 0xfe, Key_zoom = 0xfb, Key_enter = 0x0d,
 
-		KEY_LEFT = 0x25, KEY_RIGHT = 0x26, KEY_UP = 0x27, KEY_DOWN = 0x28, 
+		Key_left = 0x25, Key_right = 0x26, Key_up = 0x27, Key_down = 0x28, 
 
-		KEY_NUMPAD_1 = 0x61, KEY_NUMPAD_2, KEY_NUMPAD_3,
-		KEY_NUMPAD_4, KEY_NUMPAD_5, KEY_NUMPAD_6,
-		KEY_NUMPAD_7, KEY_NUMPAD_8, KEY_NUMPAD_9,
-		KEY_NUMPAD_0 = 0x60, KEY_NUMPAD_MULTIPLY = 0x6A, KEY_NUMPAD_ADD = 0x6B,
-		KEY_NUMPAD_DECIMAL = 0x6E, KEY_NUMPAD_DIVIDE = 0x6F, KEY_NUMPAD_SUBTRACT = 0x6D,
+		Key_numpad_1 = 0x61, Key_numpad_2, Key_numpad_3,
+		Key_numpad_4, Key_numpad_5, Key_numpad_6,
+		Key_numpad_7, Key_numpad_8, Key_numpad_9,
+		Key_numpad_0 = 0x60, Key_numpad_multiply = 0x6a, Key_numpad_add = 0x6b,
+		Key_numpad_decimal = 0x6e, Key_numpad_divide = 0x6f, Key_numpad_subtract = 0x6d,
 
-		KEY_F1 = 0x70, KEY_F2, KEY_F3, KEY_F4, KEY_F5, KEY_F6, KEY_F7, KEY_F8, KEY_F9,
-		KEY_F12, KEY_F13, KEY_F14, KEY_F15, KEY_F16, KEY_F17, KEY_F18, KEY_F19,
-		KEY_F20, KEY_F21, KEY_F22, KEY_F23, KEY_F24,
+		Key_f1 = 0x70, Key_f2, Key_f3, Key_f4, Key_f5, Key_f6, Key_f7, Key_f8, Key_f9,
+		Key_f12, Key_f13, Key_f14, Key_f15, Key_f16, Key_f17, Key_f18, Key_f19,
+		Key_f20, Key_f21, Key_f22, Key_f23, Key_f24,
 
-		KEY_PLUS = 0xBB, KEY_COMMA = 0xBC, KEY_MINUS = 0xBD, KEY_PERIOD = 0xBE, 
+		Key_plus = 0xbb, Key_comma = 0xbc, Key_minus = 0xbd, Key_period = 0xbe, 
 
-		KEY_SLASH = 0xBF, KEY_TILDE = 0xC0, KEY_SEMICOLON = 0xBA, KEY_BEGIN_BRACKET = 0xDB, KEY_END_BRACKET = 0xDD, KEY_PIPE = 0xDC,
-		KEY_QUOTE = 0xDE
+		Key_slash = 0xbf, Key_tilde = 0xc0, Key_semicolon = 0xba, Key_begin_bracket = 0xdb, Key_end_bracket = 0xdd, Key_pipe = 0xdc,
+		Key_quote = 0xde
 	);
 
 }

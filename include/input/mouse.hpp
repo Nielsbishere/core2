@@ -9,7 +9,7 @@ namespace oic {
 
 	oicExposedEnum(
 		MouseButton, ButtonHandle, 
-		BUTTON_LEFT, BUTTON_RIGHT, BUTTON_MIDDLE, BUTTON_BACK, BUTTON_FORWARD
+		Button_left, Button_right, Button_middle, Button_back, Button_forward
 	);
 
 	//Delta x/y is the relative position from the last cursor; this supports multiple mice
@@ -17,7 +17,7 @@ namespace oic {
 
 	oicExposedEnum(
 		MouseAxis, AxisHandle,
-		AXIS_X, AXIS_Y, AXIS_DELTA_X, AXIS_DELTA_Y, AXIS_WHEEL
+		Axis_x, Axis_y, Axis_delta_x, Axis_delta_y, Axis_wheel
 	);
 
 	struct ViewportInfo;

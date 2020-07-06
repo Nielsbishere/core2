@@ -1,5 +1,6 @@
 #pragma once
 #include "types.hpp"
+#include <algorithm>
 
 //Everything in this file is to fix C++'s garbage enums, done with meta programming:
 //- For exposing data from enums that C++ doesn't such as names, index in enum list
@@ -100,6 +101,7 @@ class EnumName {																									\
 public:																												\
 																													\
 	enum _E : EnumType { __VA_ARGS__ };																				\
+	using BaseType = EnumType;																						\
 																													\
 private:																											\
 																													\
@@ -346,6 +348,45 @@ public:																												\
 	template<oic::EnumNameFormat format = oic::EnumNameFormat::NO_FORMAT>											\
 	static inline _E valueByName(const String &t) {																	\
 		return _E(values[idByName<format>(t)]);																		\
+	}																												\
+																													\
+	template<bool replaceUnderscore = true>																			\
+	static inline List<String> _getNames() {																		\
+																													\
+		List<String> names(count);																					\
+																													\
+		for (usz i = 0; i < count; ++i)																				\
+			if constexpr(replaceUnderscore) {																		\
+				String s = String(nameById(i));																		\
+				std::replace(s.begin(), s.end(), '_', ' ');															\
+				names[i] = s;																						\
+			}																										\
+			else																									\
+				names[i] = nameById(i);																				\
+																													\
+		return names;																								\
+	}																												\
+																													\
+	template<bool replaceUnderscore = true>																			\
+	static inline const List<String> &getNames() {																	\
+		static const List<String> names = _getNames<replaceUnderscore>();											\
+		return names;																								\
+	}																												\
+																													\
+	static inline List<const c8*> _getCNames(const List<String> &strings) {											\
+																													\
+		List<const c8*> cNames(count);																				\
+																													\
+		for(usz i = 0; i < count; ++i)																				\
+			cNames[i] = strings[i].data();																			\
+																													\
+		return cNames;																								\
+	}																												\
+																													\
+	template<bool replaceUnderscore = true>																			\
+	static inline const List<const c8*> &getCNames() {																\
+		static const List<const c8*> names = _getCNames(getNames<replaceUnderscore>());								\
+		return names;																								\
 	}
 
 //These are all of our enum types:

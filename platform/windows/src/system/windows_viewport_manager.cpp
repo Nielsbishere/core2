@@ -479,34 +479,34 @@ namespace oic::windows {
 							if (mouseDat.usButtonFlags & RI_MOUSE_WHEEL) {
 
 								f64 delta = i16(mouseDat.usButtonData);
-								dvc->setAxis(MouseAxis::AXIS_WHEEL, delta);
+								dvc->setAxis(MouseAxis::Axis_wheel, delta);
 
 								if (vinterface)
-									vinterface->onInputUpdate(ptr->info, dvc, InputHandle(MouseAxis::AXIS_WHEEL) + MouseButton::count, delta != 0);
+									vinterface->onInputUpdate(ptr->info, dvc, InputHandle(MouseAxis::Axis_wheel) + MouseButton::count, delta != 0);
 							}
 
 							if (mouseDat.usFlags & MOUSE_MOVE_ABSOLUTE) {
 
 								f64 x = f64(mouseDat.lLastX) - rect.left, y = f64(mouseDat.lLastY) - rect.top;
 
-								dvc->setAxis(MouseAxis::AXIS_DELTA_X, dvc->getCurrentAxis(MouseAxis::AXIS_X) - x);
-								dvc->setAxis(MouseAxis::AXIS_DELTA_Y, dvc->getCurrentAxis(MouseAxis::AXIS_Y) - y);
-								dvc->setAxis(MouseAxis::AXIS_X, x);
-								dvc->setAxis(MouseAxis::AXIS_Y, y);
+								dvc->setAxis(MouseAxis::Axis_delta_x, dvc->getCurrentAxis(MouseAxis::Axis_x) - x);
+								dvc->setAxis(MouseAxis::Axis_delta_y, dvc->getCurrentAxis(MouseAxis::Axis_y) - y);
+								dvc->setAxis(MouseAxis::Axis_x, x);
+								dvc->setAxis(MouseAxis::Axis_y, y);
 
-								vinterface->onInputUpdate(ptr->info, dvc, InputHandle(MouseAxis::AXIS_DELTA_X) + MouseButton::count, mouseDat.lLastX != 0);
-								vinterface->onInputUpdate(ptr->info, dvc, InputHandle(MouseAxis::AXIS_DELTA_Y) + MouseButton::count, mouseDat.lLastY != 0);
-								vinterface->onInputUpdate(ptr->info, dvc, InputHandle(MouseAxis::AXIS_X) + MouseButton::count, false);
-								vinterface->onInputUpdate(ptr->info, dvc, InputHandle(MouseAxis::AXIS_Y) + MouseButton::count, false);
+								vinterface->onInputUpdate(ptr->info, dvc, InputHandle(MouseAxis::Axis_delta_x) + MouseButton::count, mouseDat.lLastX != 0);
+								vinterface->onInputUpdate(ptr->info, dvc, InputHandle(MouseAxis::Axis_delta_y) + MouseButton::count, mouseDat.lLastY != 0);
+								vinterface->onInputUpdate(ptr->info, dvc, InputHandle(MouseAxis::Axis_x) + MouseButton::count, false);
+								vinterface->onInputUpdate(ptr->info, dvc, InputHandle(MouseAxis::Axis_y) + MouseButton::count, false);
 
 							} else {
 
-								dvc->setAxis(MouseAxis::AXIS_DELTA_X, mouseDat.lLastX);
-								dvc->setAxis(MouseAxis::AXIS_DELTA_Y, mouseDat.lLastY);
+								dvc->setAxis(MouseAxis::Axis_delta_x, mouseDat.lLastX);
+								dvc->setAxis(MouseAxis::Axis_delta_y, mouseDat.lLastY);
 
 								if (vinterface) {
-									vinterface->onInputUpdate(ptr->info, dvc, InputHandle(MouseAxis::AXIS_DELTA_X) + MouseButton::count, mouseDat.lLastX != 0);
-									vinterface->onInputUpdate(ptr->info, dvc, InputHandle(MouseAxis::AXIS_DELTA_Y) + MouseButton::count, mouseDat.lLastY != 0);
+									vinterface->onInputUpdate(ptr->info, dvc, InputHandle(MouseAxis::Axis_delta_x) + MouseButton::count, mouseDat.lLastX != 0);
+									vinterface->onInputUpdate(ptr->info, dvc, InputHandle(MouseAxis::Axis_delta_y) + MouseButton::count, mouseDat.lLastY != 0);
 								}
 							}
 						}
@@ -533,12 +533,12 @@ namespace oic::windows {
 						int x = GET_X_LPARAM(lParam); 
 						int y = GET_Y_LPARAM(lParam);
 
-						dvc->setAxis(MouseAxis::AXIS_X, f64(x));
-						dvc->setAxis(MouseAxis::AXIS_Y, f64(y));
+						dvc->setAxis(MouseAxis::Axis_x, f64(x));
+						dvc->setAxis(MouseAxis::Axis_y, f64(y));
 
 						if (auto *vinterface = ptr->info->vinterface) {
-							vinterface->onInputUpdate(ptr->info, dvc, InputHandle(MouseAxis::AXIS_X) + MouseButton::count, false);
-							vinterface->onInputUpdate(ptr->info, dvc, InputHandle(MouseAxis::AXIS_Y) + MouseButton::count, false);
+							vinterface->onInputUpdate(ptr->info, dvc, InputHandle(MouseAxis::Axis_x) + MouseButton::count, false);
+							vinterface->onInputUpdate(ptr->info, dvc, InputHandle(MouseAxis::Axis_y) + MouseButton::count, false);
 						}
 					}
 
@@ -582,8 +582,8 @@ namespace oic::windows {
 						if (!isKeyboard) {
 							POINT point;
 							GetCursorPos(&point);
-							dvc->setAxis(MouseAxis::AXIS_X, point.x);
-							dvc->setAxis(MouseAxis::AXIS_Y, point.y);
+							dvc->setAxis(MouseAxis::Axis_x, point.x);
+							dvc->setAxis(MouseAxis::Axis_y, point.y);
 						}
 
 						oicAssert("Couldn't create raw input device", RegisterRawInputDevices(&device, 1, sizeof(RAWINPUTDEVICE)));
