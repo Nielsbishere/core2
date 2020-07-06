@@ -8,16 +8,19 @@
 
 template<typename T, usz W, usz H>
 struct TMatStorage {
+
 	union {
 		T f[W * H];
 		T m[W][H];
 		Vec<T, W> axes[H];
 	};
+
 	TMatStorage() : f {} {}
 };
 
 template<typename T>
 struct TMatStorage<T, 2, 2> {
+
 	union {
 		T f[4];
 		T m[2][2];
@@ -30,6 +33,7 @@ struct TMatStorage<T, 2, 2> {
 
 template<typename T>
 struct TMatStorage<T, 3, 3> {
+
 	union {
 
 		T f[9];
@@ -51,6 +55,7 @@ struct TMatStorage<T, 3, 3> {
 
 template<typename T>
 struct TMatStorage<T, 4, 4> {
+
 	union {
 
 		T f[16];
@@ -65,6 +70,23 @@ struct TMatStorage<T, 4, 4> {
 			Vec3<T> y; T wy;
 			Vec3<T> z; T wz;
 			Vec3<T> pos; T one;
+		};
+	};
+
+	TMatStorage() : f {} {}
+};
+
+template<typename T>
+struct TMatStorage<T, 4, 3> {
+
+	union {
+
+		T f[12];
+		T m[4][3];
+		Vec3<T> axes[4];
+
+		struct {
+			Vec3<T> x, y, z, pos;
 		};
 	};
 
@@ -363,39 +385,41 @@ struct Mat3x3 : public Mat<T, 3, 3> {
 
 //4x4 matrix
 
-template<typename T>
-struct Mat4x4 : public Mat<T, 4, 4> {
+template<typename T, usz W, usz H, typename = std::enable_if_t<W == 4 && (H == 3 || W == 4)>>
+struct MatOT : public Mat<T, W, H> {
 
-	using Mat<T, 4, 4>::Mat;
-	using Mat<T, 4, 4>::f;
-	using Mat<T, 4, 4>::toData;
+	using Mat<T, W, H>::Mat;
+	using Mat<T, W, H>::f;
+	using Mat<T, W, H>::toData;
 
-	constexpr inline Mat4x4(const Mat<T, 4, 4> &dat) : Mat<T, 4, 4>(dat) {}
-	constexpr inline Mat4x4(Mat<T, 4, 4> &&dat) : Mat<T, 4, 4>(dat) {}
+	constexpr inline MatOT(const Mat<T, W, H> &dat) : Mat<T, W, H>(dat) { }
+	constexpr inline MatOT(Mat<T, W, H> &&dat) : Mat<T, W, H>(dat) {}
 
 	//Rotation
-	static constexpr inline Mat4x4 rotateX(T v) { return TMatHelper<Mat4x4, T>::rotateX(v); }
-	static constexpr inline Mat4x4 rotateY(T v) { return TMatHelper<Mat4x4, T>::rotateY(v); }
-	static constexpr inline Mat4x4 rotateZ(T v) { return TMatHelper<Mat4x4, T>::rotateZ(v); }
+	static constexpr inline MatOT rotateX(T v) { return TMatHelper<MatOT, T>::rotateX(v); }
+	static constexpr inline MatOT rotateY(T v) { return TMatHelper<MatOT, T>::rotateY(v); }
+	static constexpr inline MatOT rotateZ(T v) { return TMatHelper<MatOT, T>::rotateZ(v); }
 
 	//Helper functions
 
-	static constexpr inline Mat4x4 translate(const Vec3<T> &pos) { 
-		Mat4x4 res{};
+	static constexpr inline MatOT translate(const Vec3<T> &pos) { 
+		MatOT res{};
 		res.pos = pos;
 		return res;
 	}
 
-	static inline Mat4x4 perspective(T fov, T asp, T n, T f) {
+	static inline MatOT perspective(T fov, T asp, T n, T f) {
 
 		static_assert(
 			std::is_floating_point_v<T>, 
-			"Can't call Mat4x4<T>::perspective if T isn't a floating point"
+			"Can't call MatOT::perspective if T isn't a floating point"
 		);
+
+		static_assert(H == 4, "MatOT::perspective only allowed on 4x4 matrices");
 
 		T scale = T(1 / tan(fov / 2));
 
-		Mat4x4 res(
+		MatOT res(
 			Vec4<T>(scale / asp, -scale, n / (f - n), 0)
 		);
 
@@ -406,53 +430,65 @@ struct Mat4x4 : public Mat<T, 4, 4> {
 
 	//TODO: Ortho
 
-	static constexpr inline Mat4x4 rotate(const Vec3<T> &rot) {
+	static constexpr inline MatOT rotate(const Vec3<T> &rot) {
 		return rotateX(rot.x) * rotateY(rot.y) * rotateZ(rot.z);
 	}
 
-	static constexpr inline Mat4x4 scale(const Vec3<T> &scl) {
-		return Mat4x4(Vec4<T>(scl.x, scl.y, scl.z, 1));
+	static constexpr inline MatOT scale(const Vec3<T> &scl) {
+
+		if constexpr (H == 4)
+			return Mat4x4<T>(Vec4<T>(scl.x, scl.y, scl.z, 1));
+		else
+			return Mat4x3<T>(Vec3<T>(scl.x, scl.y, scl.z));
 	}
 
-	static constexpr inline Mat4x4 transform(
+	static constexpr inline MatOT transform(
 		const Vec3<T> &pos, const Vec3<T> &rot, const Vec3<T> &scl
 	) {
 		return translate(pos) * rotate(rot) * scale(scl);
 	}
 
-	static constexpr inline Mat4x4 view(
+	static constexpr inline MatOT view(
 		const Vec3<T> &pos, const Vec3<T> &rot
 	) {
 		return translate(-pos) * rotate(rot);
 	}
 
-	static constexpr inline Mat4x4 lookAt(
+	static constexpr inline MatOT lookAt(
 		const Vec3<T> &eye, const Vec3<T> &center, const Vec3<T> &up
 	) {
 		Vec3<T> z = (eye - center).normalize();
 		Vec3<T> x = (up.cross(z)).normalize();
 		Vec3<T> y = (z.cross(x)).normalize();
 
-		Mat4x4 res;
+		MatOT res;
 		res.x = x;
 		res.y = y;
 		res.z = z;
-		res.pos = -eye; res.one = 1;
+		res.pos = -eye; 
+		
+		if constexpr (H == 4)
+			res.one = 1;
+
 		return res;
 	}
 
-	static constexpr inline Mat4x4 lookDirection(
+	static constexpr inline MatOT lookDirection(
 		const Vec3<T> &eye, const Vec3<T> &dir, const Vec3<T> &up
 	) {
 		Vec3<T> z = dir.normalize();
 		Vec3<T> x = (up.cross(z)).normalize();
 		Vec3<T> y = (z.cross(x)).normalize();
 
-		Mat4x4 res;
+		MatOT res;
 		res.x = x;
 		res.y = y;
 		res.z = z;
-		res.pos = -eye; res.one = 1;
+		res.pos = -eye;
+
+		if constexpr (H == 4)
+			res.one = 1;
+
 		return res;
 	}
 
@@ -500,6 +536,9 @@ using Mat3x3f64 = Mat3x3<f64>;
 
 //4x4 matrices (3d orientation + translation)
 
+template<typename T>
+using Mat4x4 = MatOT<T, 4, 4>;
+
 using Mat4x4i16 = Mat4x4<i16>;
 using Mat4x4u16 = Mat4x4<u16>;
 
@@ -514,3 +553,23 @@ using Mat4x4u32 = Mat4x4<u32>;
 using Mat4x4i64 = Mat4x4<i64>;
 using Mat4x4u64 = Mat4x4<u64>;
 using Mat4x4f64 = Mat4x4<f64>;
+
+//4x3 matrices (3d orientation + translation)
+
+template<typename T>
+using Mat4x3 = MatOT<T, 4, 3>;
+
+using Mat4x3i16 = Mat4x3<i16>;
+using Mat4x3u16 = Mat4x3<u16>;
+
+using Mat4x3i16 = Mat4x3<i16>;
+using Mat4x3u16 = Mat4x3<u16>;
+
+using Mat4x3b32 = Mat4x3<u32>;
+using Mat4x3f32 = Mat4x3<f32>;
+using Mat4x3i32 = Mat4x3<i32>;
+using Mat4x3u32 = Mat4x3<u32>;
+
+using Mat4x3i64 = Mat4x3<i64>;
+using Mat4x3u64 = Mat4x3<u64>;
+using Mat4x3f64 = Mat4x3<f64>;
