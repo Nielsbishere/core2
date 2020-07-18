@@ -247,6 +247,6 @@ namespace oic {
 		if (stat(path.c_str(), &v))
 			return false;
 
-		return usz(offset) + size > usz(v.st_size) * bool(S_ISREG(v.st_mode));
+		return usz(offset) + size <= usz(v.st_size) * bool(S_ISREG(v.st_mode));
 	}
 }

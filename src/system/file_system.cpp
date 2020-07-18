@@ -399,6 +399,9 @@ namespace oic {
 					}
 				}
 
+				if (parent.path.empty())
+					parent = get(dpath);
+
 			} else {
 
 				String dpath = ".";
@@ -420,6 +423,9 @@ namespace oic {
 						parent = get(dpath);
 					}
 				}
+
+				if (parent.path.empty())
+					parent = get(dpath);
 			}
 
 			if (!parent.hasAccess(FileAccess::WRITE)) {

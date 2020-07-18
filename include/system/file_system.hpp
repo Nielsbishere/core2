@@ -24,8 +24,11 @@ namespace oic {
 		IS_VIRTUAL = 0x4,
 		IS_FOLDER = 0x8,
 
+		//TODO: If this file is allowed to make sub files or folders
+
 		VIRTUAL_FILE = READ | IS_VIRTUAL,
-		VIRTUAL_FOLDER = IS_FOLDER | READ | IS_VIRTUAL
+		VIRTUAL_FILE_WRITE = VIRTUAL_FILE | WRITE,
+		VIRTUAL_FOLDER = IS_FOLDER | READ | IS_VIRTUAL,
     };
 
 	//!The types of file changes
@@ -178,10 +181,10 @@ namespace oic {
 		//!Open a file; has to be closed to allow it to be modified again
 		//If you don't want to wait for the file to be available, set the max timeout to 0
 		//	every retryTimeout it will attempt to open it again until maxTimeout is reached
-		virtual File *open(const FileInfo &inf, ns maxTimeout = 50_ms, ns retryTimeout = 10_ms) = 0;
+		virtual File *open(const FileInfo &inf, ns maxTimeout = 500_ms, ns retryTimeout = 100_ms) = 0;
 
 		//!Open a file by path
-		inline File *open(const String &path, ns maxTimeout = 50_ms, ns retry = 10_ms) { return open(get(path), maxTimeout, retry); }
+		inline File *open(const String &path, ns maxTimeout = 500_ms, ns retry = 100_ms) { return open(get(path), maxTimeout, retry); }
 
 		//!Close a file; ensure it can be used again
 		void close(File *f);
