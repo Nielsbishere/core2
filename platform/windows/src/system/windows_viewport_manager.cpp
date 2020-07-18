@@ -478,11 +478,20 @@ namespace oic::windows {
 
 							if (mouseDat.usButtonFlags & RI_MOUSE_WHEEL) {
 
-								f64 delta = i16(mouseDat.usButtonData);
-								dvc->setAxis(MouseAxis::Axis_wheel, delta);
+								f64 delta = i16(mouseDat.usButtonData) / f64(WHEEL_DELTA);
+								dvc->setAxis(MouseAxis::Axis_wheel_y, delta);
 
 								if (vinterface)
-									vinterface->onInputUpdate(ptr->info, dvc, InputHandle(MouseAxis::Axis_wheel) + MouseButton::count, delta != 0);
+									vinterface->onInputUpdate(ptr->info, dvc, InputHandle(MouseAxis::Axis_wheel_y) + MouseButton::count, delta != 0);
+							}
+
+							if (mouseDat.usButtonFlags & RI_MOUSE_HWHEEL) {
+
+								f64 delta = i16(mouseDat.usButtonData) / f64(WHEEL_DELTA);
+								dvc->setAxis(MouseAxis::Axis_wheel_x, delta);
+
+								if (vinterface)
+									vinterface->onInputUpdate(ptr->info, dvc, InputHandle(MouseAxis::Axis_wheel_x) + MouseButton::count, delta != 0);
 							}
 
 							if (mouseDat.usFlags & MOUSE_MOVE_ABSOLUTE) {

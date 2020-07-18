@@ -154,6 +154,8 @@ namespace oic {
 		inline usz getScreenCount() const { return screens.size(); }
 		inline const auto &getScreens() const { return screens; }
 
+		void waitForExit() const;
+
 	protected:
 
 		ViewportInfo *find(const String &name);

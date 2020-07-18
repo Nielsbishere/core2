@@ -17,7 +17,7 @@ namespace oic {
 
 	oicExposedEnum(
 		MouseAxis, AxisHandle,
-		Axis_x, Axis_y, Axis_delta_x, Axis_delta_y, Axis_wheel
+		Axis_x, Axis_y, Axis_delta_x, Axis_delta_y,  Axis_wheel_x, Axis_wheel_y
 	);
 
 	struct ViewportInfo;

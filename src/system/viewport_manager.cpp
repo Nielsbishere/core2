@@ -89,6 +89,14 @@ namespace oic {
 		idMap.clear();
 	}
 
+	void ViewportManager::waitForExit() const {
+
+		//TODO: Better way of stalling than this; like interrupt
+
+		while (System::viewportManager()->size())
+			System::wait(250_ms);
+	}
+
 	ViewportInfo *ViewportManager::find(const String &name) {
 
 		auto it = idMap.find(name);
