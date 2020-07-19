@@ -18,7 +18,7 @@ using f32 = float;
 using f64 = double;
 
 using c8 = char;
-using c16 = wchar_t;
+using c16 = char16_t;
 
 using usz = std::size_t;
 using isz = std::ptrdiff_t;
@@ -142,12 +142,23 @@ static inline void destroy(args *&...arg) {
 	(destroy(arg), ...);
 }
 
-//Temporary; Might get replaced by custom types
+//Strings
 
 #include <string>
+#include <codecvt>
 
 using String = std::string;
-using WString = std::wstring;
+using WString = std::u16string;
+
+static inline WString fromUTF8(const String &str) {
+	return std::wstring_convert<std::codecvt_utf8_utf16<c16>, c16>().from_bytes(str);
+}
+
+static inline String fromUTF16(const WString &str) {
+	return std::wstring_convert<std::codecvt_utf8_utf16<c16>, c16>().to_bytes(str);
+}
+
+//Containers
 
 #include <vector>
 
