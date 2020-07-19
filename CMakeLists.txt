@@ -203,22 +203,11 @@ macro(add_virtual_files)
 endmacro()
 
 # Setting the icon of the app
-# Only call this once 
+# Call this immediately before configure_virtual_files with the executable
 
 function(configure_icon target icon)
-
-	if(WIN32)
-
-		get_property(vfileList GLOBAL PROPERTY virtualFileDescription)
-
-		set(vfileList LOGO\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ ICON\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \"${icon}\"\n${vfileList})
-
-		set_property(GLOBAL PROPERTY virtualFileDescription ${vfileList})
-
-		target_sources(${target} PRIVATE ${icon})
-
-	endif()
-
+	set_property(GLOBAL PROPERTY CURRENT_EXECUTABLE_ICON ${icon})
+	set_property(GLOBAL PROPERTY CURRENT_EXECUTABLE_ICON_TARGET ${target})
 endfunction()
 
 # Configure virtual files for a target
@@ -227,9 +216,18 @@ function(configure_virtual_files target)
 
 	get_property(vfileList GLOBAL PROPERTY virtualFileDescription)
 	get_property(vfileRoot GLOBAL PROPERTY virtualFileRoot)
+	get_property(iconTarget GLOBAL PROPERTY CURRENT_EXECUTABLE_ICON_TARGET)
+	get_property(icon GLOBAL PROPERTY CURRENT_EXECUTABLE_ICON)
 
 	if(WIN32)
+
+		# Configure icon for this target, if igx_test's the specified target
 	
+		if("${iconTarget}" STREQUAL "${target}")
+			set(vfileList LOGO\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ ICON\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \"${icon}\"\n${vfileList})
+			target_sources(${target} PRIVATE ${icon})
+		endif()
+
 		# Prepare root file 
 
 		file(WRITE "${CMAKE_RUNTIME_OUTPUT_DIRECTORY}/${target}.root" ${vfileRoot})
