@@ -114,24 +114,26 @@ namespace oic {
 
 #define Inflect(...)																				\
 template<typename T, typename T2>																	\
-void inflect(T &inflector, const T2*) {																\
+void inflect(T &inflector, usz recursion, const T2*) {												\
 	static const List<String> namesOfArgs = oic::ArgHelper::makeNames(#__VA_ARGS__);				\
-	inflector.inflect(this, namesOfArgs, __VA_ARGS__);												\
+	inflector.inflect(this, recursion, namesOfArgs, __VA_ARGS__);									\
 }																									\
+																									\
 template<typename T, typename T2>																	\
-void inflect(T &inflector, const T2*) const {														\
+void inflect(T &inflector, usz recursion, const T2*) const {										\
 	static const List<String> namesOfArgs = oic::ArgHelper::makeNames(#__VA_ARGS__);				\
-	inflector.inflect(this, namesOfArgs, __VA_ARGS__);												\
-}
+	inflector.inflect(this, recursion, namesOfArgs, __VA_ARGS__);									\
+}																									\
 
 //InflectWithName({ "Test, "Test2" }, test, test2);
 
 #define InflectWithName(...)																		\
 template<typename T, typename T2>																	\
-void inflect(T &inflector, const T2*) {																\
-	inflector.inflect(this, __VA_ARGS__);															\
+void inflect(T &inflector, usz recursion, const T2*) {												\
+	inflector.inflect(this, recursion, __VA_ARGS__);												\
 }																									\
+																									\
 template<typename T, typename T2>																	\
-void inflect(T &inflector, const T2*) const {														\
-	inflector.inflect(this, __VA_ARGS__);															\
+void inflect(T &inflector, usz recursion, const T2*) const {										\
+	inflector.inflect(this, recursion, __VA_ARGS__);												\
 }

@@ -42,6 +42,16 @@ namespace oic {
 
 		static inline u64 hash64(const u64 a, const u64 b, u64 seed = FNV<u64>::offset);
 		static inline u32 hash32(const u32 a, const u32 b, u32 seed = FNV<u32>::offset);
+
+		static inline usz hash(const usz a, const usz b, usz seed = FNV<usz>::offset) {
+			if constexpr (sizeof(usz) == 8)		return hash64(a, b, seed);
+			else								return hash32(u32(a), u32(b), u32(seed));
+		}
+
+		static inline u32 collapse32(const usz a) {
+			if constexpr (sizeof(usz) == 8)		return hash32(a >> 32, a << 32 >> 32);
+			else								return a;
+		}
 	};
 
 	//Implementations
