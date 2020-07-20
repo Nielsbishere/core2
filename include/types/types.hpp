@@ -158,6 +158,48 @@ static inline String fromUTF16(const WString &str) {
 	return std::wstring_convert<std::codecvt_utf8_utf16<c16>, c16>().to_bytes(str);
 }
 
+//Helper if type is a string
+
+template<typename T>
+struct is_string {
+	static constexpr bool value = false;
+};
+
+template<>
+struct is_string<WString> {
+	static constexpr bool value = true;
+};
+
+template<>
+struct is_string<c16*> {
+	static constexpr bool value = true;
+};
+
+template<usz N>
+struct is_string<c16(&)[N]> {
+	static constexpr bool value = true;
+};
+
+template<>
+struct is_string<String> {
+	static constexpr bool value = true;
+};
+
+template<>
+struct is_string<c8*> {
+	static constexpr bool value = true;
+};
+
+template<usz N>
+struct is_string<c8(&)[N]> {
+	static constexpr bool value = true;
+};
+
+template<typename T>
+static constexpr bool is_string_v = is_string<T>::value;
+
+//
+
 //Containers
 
 #include <vector>
