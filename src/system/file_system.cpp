@@ -1,3 +1,4 @@
+#define _SILENCE_CXX17_CODECVT_HEADER_DEPRECATION_WARNING
 #include "system/file_system.hpp"
 #include "system/system.hpp"
 #include "system/log.hpp"

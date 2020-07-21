@@ -110,30 +110,28 @@ namespace oic {
 
 //Either reflection or inspection; inflection
 
-//InflectWithName(Test, My_name_with_spaces);
+//InflectBody(inflector.inflect(this, recursion, { "My name", "My test" }, myName, myTest);
 
-#define Inflect(...)																				\
+#define InflectBody(...)																			\
 template<typename T, typename T2>																	\
 void inflect(T &inflector, usz recursion, const T2*) {												\
-	static const List<String> namesOfArgs = oic::ArgHelper::makeNames(#__VA_ARGS__);				\
-	inflector.inflect(this, recursion, namesOfArgs, __VA_ARGS__);									\
+	__VA_ARGS__																						\
 }																									\
 																									\
 template<typename T, typename T2>																	\
 void inflect(T &inflector, usz recursion, const T2*) const {										\
+	__VA_ARGS__																						\
+}
+
+//Inflect(Test, My_name_with_spaces);
+
+#define Inflect(...) InflectBody(																	\
 	static const List<String> namesOfArgs = oic::ArgHelper::makeNames(#__VA_ARGS__);				\
 	inflector.inflect(this, recursion, namesOfArgs, __VA_ARGS__);									\
-}																									\
+);
 
 //InflectWithName({ "Test, "Test2" }, test, test2);
 
-#define InflectWithName(...)																		\
-template<typename T, typename T2>																	\
-void inflect(T &inflector, usz recursion, const T2*) {												\
+#define InflectWithName(...) InflectBody(															\
 	inflector.inflect(this, recursion, __VA_ARGS__);												\
-}																									\
-																									\
-template<typename T, typename T2>																	\
-void inflect(T &inflector, usz recursion, const T2*) const {										\
-	inflector.inflect(this, recursion, __VA_ARGS__);												\
-}
+);
