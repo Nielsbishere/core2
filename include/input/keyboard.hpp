@@ -6,6 +6,8 @@ namespace oic {
 
 	//Platform independent key code
 
+	//TODO: Key_pipe should be called Key_backslash
+
 	oicExposedEnum(
 
 		Key, ButtonHandle,
@@ -54,6 +56,8 @@ namespace oic {
 
 		//Platform and device dependent
 		bool isSupported(Handle handle) const final override;
+
+		c32 getKey(Key requestedKey) const;
 
 	};
 

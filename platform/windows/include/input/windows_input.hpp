@@ -22,7 +22,7 @@ namespace oic {
 		Key_favorites = 0xab, Key_start = 0xac, Key_mute = 0xad, Key_volume_down = 0xae, Key_volume_up = 0xaf,
 		Key_skip = 0xb0, Key_previous = 0xb1, Key_clear = 0xfe, Key_zoom = 0xfb, Key_enter = 0x0d,
 
-		Key_left = 0x25, Key_right = 0x26, Key_up = 0x27, Key_down = 0x28, 
+		Key_left = 0x25, Key_up = 0x26, Key_right = 0x27, Key_down = 0x28, 
 
 		Key_numpad_1 = 0x61, Key_numpad_2, Key_numpad_3,
 		Key_numpad_4, Key_numpad_5, Key_numpad_6,

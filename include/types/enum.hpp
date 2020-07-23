@@ -103,14 +103,13 @@ public:																												\
 	enum _E : EnumType { __VA_ARGS__ };																				\
 	using BaseType = EnumType;																						\
 																													\
-private:																											\
-																													\
 	_E value;																										\
 																													\
 public:																												\
 																													\
 	constexpr EnumName() : value(_E(0)) {}																			\
 	constexpr EnumName(_E value) : value(value) {}																	\
+	constexpr EnumName(BaseType value) : value(_E(value)) {}														\
 	constexpr EnumName(const EnumName &other) : value(other.value) {}												\
 	constexpr EnumName(EnumName &&other) : value(other.value) {}													\
 																													\
@@ -124,13 +123,13 @@ public:																												\
 		return *this;																								\
 	}																												\
 																													\
-	inline constexpr operator _E() const { return value; }															\
 	inline constexpr bool operator>(const EnumName &other) { return value > other.value; }							\
 	inline constexpr bool operator<(const EnumName &other) { return value < other.value; }							\
 	inline constexpr bool operator>=(const EnumName &other) { return value >= other.value; }						\
 	inline constexpr bool operator<=(const EnumName &other) { return value <= other.value; }						\
 	inline constexpr bool operator!=(const EnumName &other) { return value != other.value; }						\
-	inline constexpr bool operator==(const EnumName &other) { return value == other.value; }
+	inline constexpr bool operator==(const EnumName &other) { return value == other.value; }						\
+	inline constexpr isz operator-(const EnumName &other) { return isz(value) - isz(other.value); }
 
 //Add flags functionality to enum (allowing &, |, ^, <<, >>, ~)
 

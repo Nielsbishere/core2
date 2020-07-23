@@ -26,6 +26,7 @@ using f32 = float;
 
 using c8 = char;
 using c16 = char16_t;
+using c32 = char32_t;
 
 using usz = std::size_t;
 using isz = std::ptrdiff_t;

@@ -426,7 +426,8 @@ namespace oic::windows {
 
 							if (id != WKey::count) {
 
-								usz keyCode = Key::idByName(WKey::nameById(id));
+								String keyName = WKey::nameById(id);
+								usz keyCode = Key::idByName(keyName);
 								bool isKeyDown = !(keyboardDat.Flags & 1);
 
 								bool pressed = dvc->getCurrentState(ButtonHandle(keyCode));

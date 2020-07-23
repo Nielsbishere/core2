@@ -57,16 +57,16 @@ namespace oic {
 	//Floating point properties
 
 	template<typename T>
-	struct flp_properties_of {};
+	struct flp_properties_of { static constexpr bool valid = false; };
 
 	template<typename T, usz mantissaBits, usz exponentBits>
-	struct flp_properties_of<oic::flp<T, mantissaBits, exponentBits>> { static constexpr usz mantissa = mantissaBits, exponent = exponentBits; };
+	struct flp_properties_of<oic::flp<T, mantissaBits, exponentBits>> { static constexpr usz mantissa = mantissaBits, exponent = exponentBits; static constexpr bool valid = true; };
 
 	template<>
-	struct flp_properties_of<f32> { static constexpr usz mantissa = 23, exponent = 8; };
+	struct flp_properties_of<f32> { static constexpr usz mantissa = 23, exponent = 8; static constexpr bool valid = true; };
 
 	template<>
-	struct flp_properties_of<f64> { static constexpr usz mantissa = 52, exponent = 11; };
+	struct flp_properties_of<f64> { static constexpr usz mantissa = 52, exponent = 11; static constexpr bool valid = true; };
 
 	template<typename T>
 	static constexpr usz flp_mantissa_of = flp_properties_of<T>::mantissa;
@@ -88,6 +88,9 @@ namespace oic {
 	template<typename T>
 	using int_with_size_of_t = typename int_with_size_of<sizeof(T)>::type;
 
+	template<typename T>
+	static constexpr bool is_float_type_v = flp_properties_of<T>::valid;
+
 	template<> struct uint_with_size_of<1> { using type = u8; };
 	template<> struct uint_with_size_of<2> { using type = u16; };
 	template<> struct uint_with_size_of<4> { using type = u32; };
@@ -96,5 +99,37 @@ namespace oic {
 	template<> struct int_with_size_of<2> { using type = i16; };
 	template<> struct int_with_size_of<4> { using type = i32; };
 	template<> struct int_with_size_of<8> { using type = i64; };
+
+	//Check if the type is an exposed enum
+
+	template<typename, typename T>
+	struct is_exposed_enum {
+		static constexpr bool value = false;
+	};
+
+	template<typename C>
+	struct is_exposed_enum<C, void> {
+
+	private:
+
+		template<typename T>
+		static constexpr auto check(T*)
+			-> typename std::is_same<
+				decltype(T::getCNames() ),
+				const List<const c8*>& 
+			>::type; 
+
+		template<typename>
+		static constexpr std::false_type check(...);
+
+		typedef decltype(check<C>(0)) type;
+
+	public:
+
+		static constexpr bool value = type::value;
+	};
+
+	template<typename T>
+	static constexpr bool is_exposed_enum_v = is_exposed_enum<T, void>::value;
 
 }
