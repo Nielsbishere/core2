@@ -111,6 +111,8 @@ struct Mat : public TMatStorage<T, W, H> {
 	using TMatStorage<T, W, H>::f;
 	using TMatStorage<T, W, H>::axes;
 
+	static constexpr usz Height = H, Width = W;
+
 	//Constructors
 
 	Mat(const Mat&) = default;
@@ -573,3 +575,27 @@ using Mat4x3u32 = Mat4x3<u32>;
 using Mat4x3i64 = Mat4x3<i64>;
 using Mat4x3u64 = Mat4x3<u64>;
 using Mat4x3f64 = Mat4x3<f64>;
+
+namespace oic {
+
+	template<typename T>
+	struct is_matrix { static constexpr bool value = false; };
+
+	template<typename T, usz W, usz H>
+	struct is_matrix<Mat<T, W, H>> { static constexpr bool value = true; };
+
+	template<typename T>
+	struct is_matrix<Mat2x2<T>> { static constexpr bool value = true; };
+
+	template<typename T>
+	struct is_matrix<Mat3x3<T>> { static constexpr bool value = true; };
+
+	template<typename T>
+	struct is_matrix<Mat4x4<T>> { static constexpr bool value = true; };
+
+	template<typename T>
+	struct is_matrix<Mat4x3<T>> { static constexpr bool value = true; };
+
+	template<typename T>
+	static constexpr bool is_matrix_v = is_matrix<T>::value;
+}

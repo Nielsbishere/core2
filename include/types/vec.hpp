@@ -45,7 +45,10 @@ struct Vec : public TVecStorage<T, N> {
 	using TVecStorage<T, N>::TVecStorage;
 	using TVecStorage<T, N>::arr;
 
+
 	using Type = T;
+
+	static constexpr usz ArraySize = N;
 	
 	//Initialization
 	
@@ -607,3 +610,25 @@ using Vec4isz = Vec4<isz>;
 
 using Vec4f32 = Vec4<f32>;
 using Vec4f64 = Vec4<f64>;
+
+namespace oic {
+	
+	template<typename T>
+	struct is_vector { static constexpr bool value = false; };
+
+	template<typename T, usz N>
+	struct is_vector<Vec<T, N>> { static constexpr bool value = true; };
+
+	template<typename T>
+	struct is_vector<Vec2<T>> { static constexpr bool value = true; };
+
+	template<typename T>
+	struct is_vector<Vec3<T>> { static constexpr bool value = true; };
+
+	template<typename T>
+	struct is_vector<Vec4<T>> { static constexpr bool value = true; };
+
+	template<typename T>
+	static constexpr bool is_vector_v = is_vector<T>::value;
+
+}
