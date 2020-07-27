@@ -610,7 +610,7 @@ namespace oic {
 
 	bool FileSystem::read(const String &file, u8 *address, FileSize size, FileSize offset) {
 
-		if (File *f = open(file)) {
+		if (File *f = open(file, FileFlags::READ)) {
 			bool success = f->read(address, size, offset);
 			close(f);
 			return success;
@@ -636,7 +636,7 @@ namespace oic {
 
 	bool FileSystem::write(const String &path, const u8 *address, FileSize size, FileSize offset) {
 
-		if (File *f = open(path)) {
+		if (File *f = open(path, FileFlags::WRITE)) {
 
 			if(offset != usz_MAX)
 				f->resize(size);

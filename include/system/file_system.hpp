@@ -26,6 +26,8 @@ namespace oic {
 
 		//TODO: If this file is allowed to make sub files or folders
 
+		READ_WRITE = READ | WRITE,
+
 		VIRTUAL_FILE = READ | IS_VIRTUAL,
 		VIRTUAL_FILE_WRITE = VIRTUAL_FILE | WRITE,
 		VIRTUAL_FOLDER = IS_FOLDER | READ | IS_VIRTUAL,
@@ -184,7 +186,15 @@ namespace oic {
 		virtual File *open(const FileInfo &inf, ns maxTimeout = 500_ms, ns retryTimeout = 100_ms) = 0;
 
 		//!Open a file by path
-		inline File *open(const String &path, ns maxTimeout = 500_ms, ns retry = 100_ms) { return open(get(path), maxTimeout, retry); }
+		inline File *open(const String &path, FileFlags flags, ns maxTimeout = 500_ms, ns retry = 100_ms) { 
+
+			const auto fi = get(path);
+
+			if (!fi.hasFlags(flags))
+				return nullptr;
+
+			return open(fi, maxTimeout, retry);
+		}
 
 		//!Close a file; ensure it can be used again
 		void close(File *f);
