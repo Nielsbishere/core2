@@ -101,7 +101,19 @@ namespace oic {
 		}
 
 		bool resize(FileSize size) final override {
-			f.fileSize = size;
+
+			if (f.fileSize == size)
+				return true;
+
+			//Recreate file
+
+			fclose(file);
+			::remove(f.path.c_str());
+			fopen_s(&file, f.path.c_str(), "wb");
+
+			//Update file system size
+
+			f.fileSize = 0;
 			return true;
 		}
 	};

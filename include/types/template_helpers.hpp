@@ -100,36 +100,4 @@ namespace oic {
 	template<> struct int_with_size_of<4> { using type = i32; };
 	template<> struct int_with_size_of<8> { using type = i64; };
 
-	//Check if the type is an exposed enum
-
-	template<typename, typename T>
-	struct is_exposed_enum {
-		static constexpr bool value = false;
-	};
-
-	template<typename C>
-	struct is_exposed_enum<C, void> {
-
-	private:
-
-		template<typename T>
-		static constexpr auto check(T*)
-			-> typename std::is_same<
-				decltype(T::getCNames() ),
-				const List<const c8*>& 
-			>::type; 
-
-		template<typename>
-		static constexpr std::false_type check(...);
-
-		typedef decltype(check<C>(0)) type;
-
-	public:
-
-		static constexpr bool value = type::value;
-	};
-
-	template<typename T>
-	static constexpr bool is_exposed_enum_v = is_exposed_enum<T, void>::value;
-
 }

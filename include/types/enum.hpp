@@ -123,13 +123,13 @@ public:																												\
 		return *this;																								\
 	}																												\
 																													\
-	inline constexpr bool operator>(const EnumName &other) { return value > other.value; }							\
-	inline constexpr bool operator<(const EnumName &other) { return value < other.value; }							\
-	inline constexpr bool operator>=(const EnumName &other) { return value >= other.value; }						\
-	inline constexpr bool operator<=(const EnumName &other) { return value <= other.value; }						\
-	inline constexpr bool operator!=(const EnumName &other) { return value != other.value; }						\
-	inline constexpr bool operator==(const EnumName &other) { return value == other.value; }						\
-	inline constexpr isz operator-(const EnumName &other) { return isz(value) - isz(other.value); }
+	inline constexpr bool operator>(const EnumName &other) const { return value > other.value; }					\
+	inline constexpr bool operator<(const EnumName &other) const { return value < other.value; }					\
+	inline constexpr bool operator>=(const EnumName &other) const { return value >= other.value; }					\
+	inline constexpr bool operator<=(const EnumName &other) const { return value <= other.value; }					\
+	inline constexpr bool operator!=(const EnumName &other) const { return value != other.value; }					\
+	inline constexpr bool operator==(const EnumName &other) const { return value == other.value; }					\
+	inline constexpr isz operator-(const EnumName &other) const { return isz(value) - isz(other.value); }
 
 //Add flags functionality to enum (allowing &, |, ^, <<, >>, ~)
 
@@ -139,10 +139,10 @@ public:																												\
 	inline constexpr EnumName &operator&=(const EnumName &other) { return *this = operator&(other); }				\
 	inline constexpr EnumName &operator|=(const EnumName &other) { return *this = operator|(other); }				\
 	inline constexpr EnumName &operator^=(const EnumName &other) { return *this = operator^(other); }				\
-	inline constexpr EnumName operator|(const EnumName &other) { return _E(value | other.value); }					\
-	inline constexpr EnumName operator&(const EnumName &other) { return _E(value & other.value); }					\
-	inline constexpr EnumName operator^(const EnumName &other) { return _E(value ^ other.value); }					\
-	inline constexpr EnumName operator~() { return _E(~value); }													\
+	inline constexpr EnumName operator|(const EnumName &other) const { return _E(value | other.value); }			\
+	inline constexpr EnumName operator&(const EnumName &other) const { return _E(value & other.value); }			\
+	inline constexpr EnumName operator^(const EnumName &other) const { return _E(value ^ other.value); }			\
+	inline constexpr EnumName operator~() const { return _E(~value); }												\
 	inline constexpr EnumName operator|(const _E other) const { return _E(value | other); }							\
 	inline constexpr EnumName operator&(const _E other) const { return _E(value & other); }							\
 	inline constexpr EnumName operator^(const _E other) const { return _E(value ^ other); }							\
@@ -412,6 +412,7 @@ inline constexpr Enum operator|(const Enum &a, const Enum &b) { return Enum(std:
 inline constexpr Enum operator&(const Enum &a, const Enum &b) { return Enum(std::underlying_type_t<Enum>(a) & std::underlying_type_t<Enum>(b)); }							\
 inline constexpr Enum operator^(const Enum &a, const Enum &b) { return Enum(std::underlying_type_t<Enum>(a) ^ std::underlying_type_t<Enum>(b)); }							\
 inline constexpr Enum operator~(const Enum &a) { return Enum(~std::underlying_type_t<Enum>(a)); }																			\
+inline constexpr Enum operator<<(const Enum &a, usz amount) { return Enum(std::underlying_type_t<Enum>(a) << amount); }																			\
 																																											\
 inline Enum &operator|=(Enum &a, const Enum &b) { *(std::underlying_type_t<Enum>*)&a = std::underlying_type_t<Enum>(a) | std::underlying_type_t<Enum>(b); return a; }		\
 inline Enum &operator&=(Enum &a, const Enum &b) { *(std::underlying_type_t<Enum>*)&a = std::underlying_type_t<Enum>(a) & std::underlying_type_t<Enum>(b); return a; }		\
@@ -419,3 +420,50 @@ inline Enum &operator^=(Enum &a, const Enum &b) { *(std::underlying_type_t<Enum>
 																																											\
 inline constexpr std::underlying_type_t<Enum> AsValue(const Enum &a) { return std::underlying_type_t<Enum>(a); }															\
 inline constexpr bool HasFlags(const Enum &a, const Enum &b) { return (a & b) == b; }
+
+namespace oic {
+
+	template<typename, typename T>
+	struct is_exposed_enum {
+		static constexpr bool value = false;
+	};
+
+	template<typename C>
+	struct is_exposed_enum<C, void> {
+
+	private:
+
+		template<typename T>
+		static constexpr auto check(T*)
+			-> typename std::is_same<
+			decltype(T::getCNames() ),
+			const List<const c8*>& 
+			>::type; 
+
+		template<typename>
+		static constexpr std::false_type check(...);
+
+		typedef decltype(check<C>(0)) type;
+
+	public:
+
+		static constexpr bool value = type::value;
+	};
+
+	template<typename T>
+	static constexpr bool is_exposed_enum_v = is_exposed_enum<T, void>::value;
+
+}
+
+//TODO: Perhaps not needed if the implicit cast to _E comes back
+
+//Needs to be called in global namespace
+#define oicEnumHash(MyEnum)											\
+namespace std {														\
+	template<>														\
+	struct hash<MyEnum> {											\
+		inline usz operator()(const MyEnum &e) const {				\
+			return usz(e.value);									\
+		}															\
+	};																\
+}

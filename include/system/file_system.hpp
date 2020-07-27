@@ -252,6 +252,9 @@ namespace oic {
 		//@return bool success
 		bool write(const String &file, const Buffer &buffer, FileSize size = 0, usz bufferOffset = 0, FileSize fileOffset = 0);
 
+		//Same as write but creates a file if possible if the file cannot be found
+		bool writeNew(const String &file, const Buffer &buffer, FileSize size = 0, usz bufferOffset = 0, FileSize fileOffset = 0);
+
 		//!Add a directory or file
 		//@param[in] path The path in oic file notation
 		//@param[in] isFolder If the file is capable of having children

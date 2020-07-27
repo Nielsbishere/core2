@@ -479,8 +479,8 @@ struct MatOT : public Mat<T, W, H> {
 		const Vec3<T> &eye, const Vec3<T> &dir, const Vec3<T> &up
 	) {
 		Vec3<T> z = dir.normalize();
-		Vec3<T> x = (up.cross(z)).normalize();
-		Vec3<T> y = (z.cross(x)).normalize();
+		Vec3<T> x = (z.cross(up)).normalize();
+		Vec3<T> y = (x.cross(z)).normalize();
 
 		MatOT res;
 		res.x = x;

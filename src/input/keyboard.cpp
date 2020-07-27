@@ -19,7 +19,7 @@ namespace oic {
 			case Key::Key_minus:			return isShift ? '_' : '-';
 			case Key::Key_period:			return isShift ? '>' : '.';
 			
-			case Key::Key_slash:			return isShift ? '/' : '?';
+			case Key::Key_slash:			return isShift ? '?' : '/';
 			case Key::Key_tilde:			return isShift ? '~' : '`';
 			case Key::Key_semicolon:		return isShift ? ':' : ';';
 			case Key::Key_quote:			return isShift ? '"' : '\'';

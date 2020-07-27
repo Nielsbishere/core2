@@ -637,6 +637,10 @@ namespace oic {
 	bool FileSystem::write(const String &path, const u8 *address, FileSize size, FileSize offset) {
 
 		if (File *f = open(path)) {
+
+			if(offset != usz_MAX)
+				f->resize(size);
+
 			bool success = f->write(address, size, offset);
 			close(f);
 			return success;
@@ -654,5 +658,13 @@ namespace oic {
 			size = buffer.size() - bufferOffset;
 
 		return write(path, buffer.data() + bufferOffset, size, fileOffset);
+	}
+
+	bool FileSystem::writeNew(const String &path, const Buffer &buffer, FileSize size, usz bufferOffset, FileSize fileOffset) {
+
+		if (!exists(path))
+			oicAssert("Write safe requires being able to add a file to the path", add(path, false));
+
+		return write(path, buffer, size, bufferOffset, fileOffset);
 	}
 }
