@@ -1,6 +1,8 @@
 #pragma once
 #include <mutex>
 #include "types/types.hpp"
+#include "system/system.hpp"
+#include "system/log.hpp"
 
 namespace oic {
 
@@ -244,6 +246,21 @@ namespace oic {
 		//@param[in] offset The byte offset in the file
 		//@return bool success
 		bool read(const String &file, Buffer &buffer, FileSize size = 0, FileSize offset = 0);
+
+		//!Read a (part of a) file into a buffer, throws on fail
+		//@param[in] path The path in oic file notation
+		//@param[in] size The number of bytes to read (0 = all by default)
+		//@param[in] offset The byte offset in the file
+		//@return Buffer result
+		inline Buffer readToBuffer(const String &file, FileSize size = 0, FileSize offset = 0) {
+
+			Buffer buf;
+
+			if (!read(file, buf, size, offset))
+				oic::System::log()->fatal("Couldn't read file to buffer");
+
+			return buf;
+		}
 
 		//!Write to a (part of a) file from an address
 		//@param[in] path The path in oic file notation

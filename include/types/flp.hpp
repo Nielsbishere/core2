@@ -9,12 +9,12 @@ namespace oic {
 	template<typename T, usz mantissaBits, usz exponentBits>
 	struct flp {
 
-		static constexpr usz
+		static constexpr u64
 			myExponentBits = exponentBits,
 			myMantissaBits = mantissaBits,
 			signOff = mantissaBits + exponentBits,
-			exponentMask = (1 << exponentBits) - 1,
-			mantissaMask = (1 << mantissaBits) - 1;
+			exponentMask = (T(1) << exponentBits) - 1,
+			mantissaMask = (T(1) << mantissaBits) - 1;
 
 		static constexpr int_with_size_of_t<T> exponentStart = (1 << (exponentBits - 1)) - 1;
 
@@ -25,8 +25,8 @@ namespace oic {
 		constexpr inline auto exponent() const { return (int_with_size_of_t<T>) rawExponent() - exponentStart; }
 		constexpr inline bool sign() const { return value >> signOff; }
 
-		constexpr inline void clearSign() { value &= ~(1 << signOff); }
-		constexpr inline void setSign() { value |= (1 << signOff); }
+		constexpr inline void clearSign() { value &= ~(T(1) << signOff); }
+		constexpr inline void setSign() { value |= (T(1) << signOff); }
 		constexpr inline void sign(bool b) { if (b) setSign(); else clearSign(); }
 
 		constexpr inline void mantissa(T mantissa) { value &= ~mantissaBits; value |= mantissa; }
@@ -74,8 +74,11 @@ namespace oic {
 
 			//Only calculate if not -0 or 0
 
-			else if (mantissa() != 0 || rawExponent() != 0)
-				res.value |= (mantissa() << (res.myMantissaBits - mantissaBits)) | ((exponent() + res.exponentStart) << Mantissa);
+			else if (mantissa() != 0 || rawExponent() != 0) {
+				T2 mant = T2(mantissa()) << (res.myMantissaBits - mantissaBits);
+				T2 exp = T2((exponent() + res.exponentStart) << Mantissa);
+				res.value |= mant | exp;
+			}
 
 			return res;
 		}
@@ -88,7 +91,7 @@ namespace oic {
 		template<typename T2, typename = std::enable_if_t<std::is_floating_point_v<T2>>>
 		constexpr inline operator T2() const {
 			auto res = cast<flp<uint_with_size_of_t<T2>, flp_mantissa_of<T2>, flp_exponent_of<T2>>>();
-			return *(T2*) &res.value;
+			return *(const T2*) &res.value;
 		}
 
 	private:
