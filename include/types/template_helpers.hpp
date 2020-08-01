@@ -2,6 +2,13 @@
 #include "data_types.hpp"
 
 namespace oic {
+	template<typename T, usz mantissaBits, usz exponentBits>
+	struct flp;
+}
+
+using f16 = oic::flp<u16, 10, 5>;
+
+namespace oic {
 	//Generate a signed version of the unsigned integer
 
 	template<typename T> struct Signed {};
@@ -12,9 +19,6 @@ namespace oic {
 
 	template<typename T>
 	using Signed_v = typename Signed<T>::v;
-
-	template<typename T, usz mantissaBits, usz exponentBits>
-	struct flp;
 
 	template<typename T>
 	struct is_string {
@@ -95,9 +99,32 @@ namespace oic {
 	template<> struct uint_with_size_of<2> { using type = u16; };
 	template<> struct uint_with_size_of<4> { using type = u32; };
 	template<> struct uint_with_size_of<8> { using type = u64; };
+
 	template<> struct int_with_size_of<1> { using type = i8; };
 	template<> struct int_with_size_of<2> { using type = i16; };
 	template<> struct int_with_size_of<4> { using type = i32; };
 	template<> struct int_with_size_of<8> { using type = i64; };
+
+	//Get largest primitive of a type (e.g. largest_primitive_t<f16> = f64)
+
+	template<typename T>
+	struct largest_primitive {};
+
+	template<typename T>
+	using largest_primitive_t = typename largest_primitive<T>::type;
+
+	template<> struct largest_primitive<u8>  { using type = u64; };
+	template<> struct largest_primitive<u16> { using type = u64; };
+	template<> struct largest_primitive<u32> { using type = u64; };
+	template<> struct largest_primitive<u64> { using type = u64; };
+
+	template<> struct largest_primitive<i8>  { using type = i64; };
+	template<> struct largest_primitive<i16> { using type = i64; };
+	template<> struct largest_primitive<i32> { using type = i64; };
+	template<> struct largest_primitive<i64> { using type = i64; };
+
+	template<> struct largest_primitive<f16> { using type = f64; };
+	template<> struct largest_primitive<f32> { using type = f64; };
+	template<> struct largest_primitive<f64> { using type = f64; };
 
 }

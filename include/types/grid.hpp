@@ -12,7 +12,7 @@ namespace oic {
 
 	template<
 		typename T,
-		typename = std::enable_if_t<std::is_pod_v<T> || std::is_arithmetic_v<T>>
+		typename = std::enable_if_t<std::is_trivial_v<T> || std::is_arithmetic_v<T>>
 	>
 	class Grid1D {
 
@@ -115,7 +115,7 @@ namespace oic {
 
 	template<
 		typename T,
-		typename = std::enable_if_t<std::is_pod_v<T> || std::is_arithmetic_v<T>>
+		typename = std::enable_if_t<std::is_trivial_v<T> || std::is_arithmetic_v<T>>
 	>
 	class Grid2D {
 
@@ -229,7 +229,7 @@ namespace oic {
 
 	template<
 		typename T,
-		typename = std::enable_if_t<std::is_pod_v<T> || std::is_arithmetic_v<T>>
+		typename = std::enable_if_t<std::is_trivial_v<T> || std::is_arithmetic_v<T>>
 	>
 	class Grid3D {
 

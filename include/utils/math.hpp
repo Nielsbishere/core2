@@ -38,6 +38,11 @@ namespace oic {
 		}
 
 		template<typename T, typename = std::enable_if_t<std::is_floating_point_v<T>>>
+		static constexpr inline T fract(T v) {
+			return v - floor(v);
+		}
+
+		template<typename T, typename = std::enable_if_t<std::is_floating_point_v<T>>>
 		static constexpr inline T ceil(T v) {
 			return floor(v) + (v > 0 && v != floor(v));
 		}
