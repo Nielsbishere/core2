@@ -49,6 +49,30 @@ namespace oic {
 		constexpr inline T &getValue() { return value; }
 		constexpr inline const T &getValue() const { return value; }
 
+		constexpr inline bool isNaN() const {
+			return rawExponent() == exponentMask && mantissa();
+		}
+
+		constexpr inline bool isInf() const {
+			return rawExponent() == exponentMask && !mantissa();
+		}
+
+		constexpr inline bool lacksPrecision() const {
+			return rawExponent() == exponentMask;
+		}
+
+		static constexpr inline flp max() {
+			flp res;
+			res.value = ((exponentMask << mantissaBits) - 1) | mantissaMask;
+			return res;
+		}
+
+		static constexpr inline flp min() {
+			flp res;
+			res.value = ((exponentMask << mantissaBits) - 1) | mantissaMask | (1 << signOff);
+			return res;
+		}
+
 		//Cast to bigger type
 
 		template<template<typename T2, usz, usz> typename Tflp, typename T2, usz Mantissa, usz Exp>
@@ -64,12 +88,12 @@ namespace oic {
 
 			//NaN
 
-			if (rawExponent() == exponentMask && mantissa())
+			if (isNaN())
 				res.value |= (res.exponentMask << Mantissa) | res.mantissaMask;
 
 			//Inf
 
-			else if (rawExponent() == exponentMask)
+			else if (isInf())
 				res.value |= res.exponentMask << Mantissa;
 
 			//Only calculate if not -0 or 0
@@ -122,7 +146,7 @@ namespace oic {
 				return;
 
 			//NaN
-			else if (val.rawExponent() == val.exponentMask && vmantissa) {
+			else if (val.isNaN()) {
 				value |= (exponentMask << mantissaBits) | mantissaMask;
 				return;
 			}

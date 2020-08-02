@@ -7,6 +7,8 @@ namespace oic {
 }
 
 using f16 = oic::flp<u16, 10, 5>;
+using flp32 = oic::flp<u32, 23, 8>;
+using flp64 = oic::flp<u64, 52, 11>;
 
 namespace oic {
 	//Generate a signed version of the unsigned integer
