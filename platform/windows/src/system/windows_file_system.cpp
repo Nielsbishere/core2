@@ -280,7 +280,7 @@ namespace oic {
 		const c8 *data = (const c8*)LockResource(rootHandle);
 		if (!data) { FreeResource(rootHandle); return; }
 
-		usz end = strlen(data);
+		usz end = SizeofResource(nullptr, root);
 
 		List<FileInfo> files;
 		files.push_back(virtualFiles[0]);

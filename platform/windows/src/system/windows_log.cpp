@@ -74,6 +74,15 @@ namespace oic::windows {
 		} else
 			windows::print(str.c_str(), color);
 
+		#ifndef NDEBUG
+
+			#undef ERROR
+
+			if(level == LogLevel::ERROR)
+				DebugBreak();
+
+		#endif
+
 		if (level == LogLevel::FATAL) {
 
 			Log::printStackTrace(1);
