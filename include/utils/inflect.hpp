@@ -122,6 +122,16 @@ template<typename T, typename T2>																	\
 void inflect(T &inflector, usz recursion, const T2*) const {										\
 	__VA_ARGS__																						\
 }
+#define InflectBodyWithParent(...)																	\
+template<typename T, typename T2>																	\
+void inflect(T &inflector, usz recursion, const T2 *parent) {										\
+	__VA_ARGS__																						\
+}																									\
+																									\
+template<typename T, typename T2>																	\
+void inflect(T &inflector, usz recursion, const T2 *parent) const {									\
+	__VA_ARGS__																						\
+}
 
 //Inflect(Test, My_name_with_spaces);
 
@@ -129,9 +139,23 @@ void inflect(T &inflector, usz recursion, const T2*) const {										\
 	static const List<String> namesOfArgs = oic::ArgHelper::makeNames(#__VA_ARGS__);				\
 	inflector.inflect(this, recursion, namesOfArgs, __VA_ARGS__);									\
 );
+//InflectParented(Parent, Test, My_name_with_spaces);
+
+#define InflectParented(Parent, ...) InflectBodyWithParent(											\
+	static const List<String> namesOfArgs = oic::ArgHelper::makeNames(#__VA_ARGS__);				\
+	Parent::inflect(inflector, recursion + 1, parent);												\
+	inflector.inflect(this, recursion, namesOfArgs, __VA_ARGS__);									\
+);
 
 //InflectWithName({ "Test, "Test2" }, test, test2);
 
 #define InflectWithName(...) InflectBody(															\
+	inflector.inflect(this, recursion, __VA_ARGS__);												\
+);
+
+//InflectParentedWithName(Parent, { "Test, "Test2" }, test, test2);
+
+#define InflectParentedWithName(Parent, ...) InflectBodyWithParent(									\
+	Parent::inflect(inflector, recursion + 1, parent);												\
 	inflector.inflect(this, recursion, __VA_ARGS__);												\
 );

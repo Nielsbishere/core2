@@ -15,7 +15,10 @@ struct TMatStorage {
 		Vec<T, W> axes[H];
 	};
 
-	TMatStorage() : f {} {}
+	constexpr inline TMatStorage(): f{} {}
+
+	template<typename ...args>
+	constexpr inline TMatStorage(const Vec<T, W> &axis, const args &...arg): axes{ axis, arg... } {}
 };
 
 template<typename T>
@@ -28,7 +31,10 @@ struct TMatStorage<T, 2, 2> {
 		struct { Vec2<T> x, y; };
 	};
 
-	TMatStorage() : f {} {}
+	constexpr inline TMatStorage(): f{} {}
+
+	template<typename ...args>
+	constexpr inline TMatStorage(const Vec2<T> &axis, const args &...arg): axes{ axis, arg... } {}
 };
 
 template<typename T>
@@ -50,7 +56,10 @@ struct TMatStorage<T, 3, 3> {
 		};
 	};
 
-	TMatStorage() : f {} {}
+	constexpr inline TMatStorage(): f{} {}
+
+	template<typename ...args>
+	constexpr inline TMatStorage(const Vec3<T> &axis, const args &...arg): axes{ axis, arg... } {}
 };
 
 template<typename T>
@@ -73,7 +82,10 @@ struct TMatStorage<T, 4, 4> {
 		};
 	};
 
-	TMatStorage() : f {} {}
+	constexpr inline TMatStorage(): f{} {}
+
+	template<typename ...args>
+	constexpr inline TMatStorage(const Vec4<T> &axis, const args &...arg): axes{ axis, arg... } {}
 };
 
 template<typename T>
@@ -90,7 +102,10 @@ struct TMatStorage<T, 4, 3> {
 		};
 	};
 
-	TMatStorage() : f {} {}
+	constexpr inline TMatStorage(): f{} {}
+
+	template<typename ...args>
+	constexpr inline TMatStorage(const Vec3<T> &axis, const args &...arg): axes{ axis, arg... } {}
 };
 
 //Col major matrix base
@@ -107,6 +122,7 @@ struct Mat : public TMatStorage<T, W, H> {
 	using Horizontal = Vec<T, W>;
 	using Vertical = Vec<T, H>;
 
+	using TMatStorage<T, W, H>::TMatStorage;
 	using TMatStorage<T, W, H>::m;
 	using TMatStorage<T, W, H>::f;
 	using TMatStorage<T, W, H>::axes;
@@ -120,10 +136,17 @@ struct Mat : public TMatStorage<T, W, H> {
 	Mat &operator=(const Mat&) = default;
 	Mat &operator=(Mat&&) = default;
 
-	//Identity or scale matrix
-	explicit constexpr inline Mat(const Diagonal &scale = 1) {
+	//Scale matrix
+	explicit constexpr inline Mat(const Diagonal &scale) {
 		for (usz i = 0; i < diagonalN; ++i) m[i][i] = scale[i];
 	}
+
+	//Identity
+	constexpr inline Mat(): Mat(Diagonal(1)) { }
+
+	//
+	template<typename ...args>
+	constexpr inline Mat(const Vec<T, W> &axis, const args &...arg): TMatStorage<T, W, H>{ axis, arg... } {}
 
 	//Value matrix
 	constexpr inline Mat(const T &t) {

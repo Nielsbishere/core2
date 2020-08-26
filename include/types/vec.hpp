@@ -321,6 +321,26 @@ struct Vec : public TVecStorage<T, N> {
 		return res;
 	}
 	
+	//Ceil into divisions of "other"
+	//Vec2u32(1).align<16>() or Vec2u32(1).align<Vec2u32(16)>() will return Vec2u32(16)
+	//Expects all members to be base2 (otherwise generates invalid results)
+	//
+	template<T alignment>
+	constexpr inline Vec align() const {
+
+		static_assert(std::is_integral_v<T> && std::is_unsigned_v<T>, "Vec<T,N>::align only exists on uints");
+		static_assert(alignment > 0, "Vec<T,N>::align invalid alignment");
+
+		static constexpr T alignment_1 = alignment - 1;
+
+		Vec res;
+
+		for (u32 i = 0; i < N; ++i)
+			res.arr[i] = (arr[i] + alignment_1) & ~alignment_1;
+
+		return res;
+	}
+	
 	constexpr inline Vec fract() const {
 	
 		static_assert(std::is_floating_point_v<T>, "Vec<T,N>::fract only exists on floating points");
