@@ -9,6 +9,7 @@ namespace oic {
 		static constexpr f64
 			PI = 3.14159265358979323846,
 			PI2 = PI * 2,
+			PI0_5 = PI * 0.5,
 			radToDeg = 180 / Math::PI,
 			degToRad = Math::PI / 180;
 

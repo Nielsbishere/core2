@@ -352,12 +352,12 @@ struct Vec : public TVecStorage<T, N> {
 	
 	constexpr inline Vec radToDeg() const {
 		static_assert(std::is_floating_point_v<T>, "Vec<T,N>::radToDeg only exists on floating points");
-		return operator*(TO_DEG);
+		return operator*(T(TO_DEG));
 	}
 	
 	constexpr inline Vec degToRad() const {
 		static_assert(std::is_floating_point_v<T>, "Vec<T,N>::degToRad only exists on floating points");
-		return operator*(TO_RAD);
+		return operator*(T(TO_RAD));
 	}
 	
 	//Bitwise operator
