@@ -122,6 +122,7 @@ template<typename T, typename T2>																	\
 void inflect(T &inflector, usz recursion, const T2*) const {										\
 	__VA_ARGS__																						\
 }
+
 #define InflectBodyWithParent(...)																	\
 template<typename T, typename T2>																	\
 void inflect(T &inflector, usz recursion, const T2 *parent) {										\

@@ -128,7 +128,7 @@ namespace oic {
 
 #ifndef NDEBUG
 	#define NAME(x) String(x)
-	#define VIRTUAL_FILE(x) String(x)
+	#define VIRTUAL_FILE(x) String("~/" x)
 #else
 	#define NAME(x) String(oic::Hash::hash(x))
 	#define VIRTUAL_FILE(x) String(x)						//TODO:
