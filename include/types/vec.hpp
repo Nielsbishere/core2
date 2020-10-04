@@ -362,19 +362,19 @@ struct Vec : public TVecStorage<T, N> {
 	
 	//Bitwise operator
 	
-	constexpr inline Vec &operator<<=(const usz v) {
+	constexpr inline Vec &operator<<=(const Vec &other) {
 	
 		static_assert(std::is_integral_v<T>, "Vec<T,N>::operator<<= only exists on integers");
 	
-		for (usz i = 0; i < N; ++i) arr[i] <<= v;
+		for (usz i = 0; i < N; ++i) arr[i] <<= other[i];
 		return *this;
 	}
 	
-	constexpr inline Vec &operator>>=(const usz v) {
+	constexpr inline Vec &operator>>=(const Vec &other) {
 	
 		static_assert(std::is_integral_v<T>, "Vec<T,N>::operator>>= only exists on integers");
 	
-		for (usz i = 0; i < N; ++i) arr[i] >>= v;
+		for (usz i = 0; i < N; ++i) arr[i] >>= other[i];
 		return *this;
 	}
 	
@@ -411,8 +411,8 @@ struct Vec : public TVecStorage<T, N> {
 		return res;
 	}
 
-	constexpr inline Vec operator>>(const usz v) const { return Vec(*this) >>= v; }
-	constexpr inline Vec operator<<(const usz v) const { return Vec(*this) <<= v; }
+	constexpr inline Vec operator>>(const Vec &v) const { return Vec(*this) >>= v; }
+	constexpr inline Vec operator<<(const Vec &v) const { return Vec(*this) <<= v; }
 	constexpr inline Vec operator|(const Vec &other) const { return Vec(*this) |= other; }
 	constexpr inline Vec operator&(const Vec &other) const { return Vec(*this) &= other; }
 	constexpr inline Vec operator^(const Vec &other) const { return Vec(*this) ^= other; }
