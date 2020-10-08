@@ -131,5 +131,5 @@ namespace oic {
 	#define VIRTUAL_FILE(x) String("~/" x)
 #else
 	#define NAME(x) String(oic::Hash::hash(x))
-	#define VIRTUAL_FILE(x) String(x)						//TODO:
+	#define VIRTUAL_FILE(x) String("~/" x)						//TODO:
 #endif

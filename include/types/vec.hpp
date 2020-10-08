@@ -11,7 +11,9 @@
 
 template<typename T, usz N>
 struct TVecStorage {
-	T arr[N];
+	union {
+		T arr[N];
+	};
 };
 
 template<typename T>
@@ -44,7 +46,6 @@ struct Vec : public TVecStorage<T, N> {
 
 	using TVecStorage<T, N>::TVecStorage;
 	using TVecStorage<T, N>::arr;
-
 
 	using Type = T;
 
@@ -93,6 +94,13 @@ struct Vec : public TVecStorage<T, N> {
 	constexpr inline Vec &operator/=(const Vec &other) {
 		for (usz i = 0; i < N; ++i) arr[i] /= other.arr[i];
 		return *this;
+	}
+
+	template<typename T2 = T>
+	constexpr inline T2 countAny() const {
+		T2 count{};
+		for (usz i = 0; i < N; ++i) count += T2(bool(arr[i]));
+		return count;
 	}
 	
 	constexpr inline Vec &operator%=(const Vec &other) {
