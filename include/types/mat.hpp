@@ -85,7 +85,7 @@ struct TMatStorage<T, 4, 4> {
 	constexpr inline TMatStorage(): f{} {}
 
 	template<typename ...args>
-	constexpr inline TMatStorage(const Vec4<T> &axis, const args &...arg): axes{ axis, arg... } {}
+	constexpr inline TMatStorage(const Vec4<T> &axis0, const Vec4<T> &axis1, const args &...arg): axes{ axis0, axis1, arg... } {}
 };
 
 template<typename T>
@@ -146,7 +146,7 @@ struct Mat : public TMatStorage<T, W, H> {
 
 	//
 	template<typename ...args>
-	constexpr inline Mat(const Vec<T, W> &axis, const args &...arg): TMatStorage<T, W, H>{ axis, arg... } {}
+	constexpr inline Mat(const Vec<T, W> &axis0, const Vec<T, W> &axis1, const args &...arg): TMatStorage<T, W, H>{ axis0, axis1, arg... } {}
 
 	//Value matrix
 	constexpr inline Mat(const T &t) {
@@ -227,7 +227,6 @@ struct Mat : public TMatStorage<T, W, H> {
 	//Matrix math
 
 	//TODO: Inverse, determinant
-	//TODO: Transform vector
 
 	constexpr inline Vec<T, H> operator*(const Vec<T, W> &other) const {
 

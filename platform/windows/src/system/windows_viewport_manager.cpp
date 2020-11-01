@@ -629,7 +629,7 @@ namespace oic::windows {
 						info->vinterface->update(info, dt);
 					}
 
-					ptr->last = oic::Timer::now();
+					ptr->last = now;
 
 					//Update input
 

@@ -17,6 +17,8 @@ namespace oic {
 
 	public:
 
+		static constexpr c8 hexChars[17] = "0123456789ABCDEF";
+
 		static constexpr usz maxStackTrace = 128;
 		using StackTrace = Array<void *, maxStackTrace>;
 
