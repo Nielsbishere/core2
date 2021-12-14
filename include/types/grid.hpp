@@ -40,7 +40,7 @@ namespace oic {
 		Grid1D(usz w): w(w), data(new T[w]{}){}
 
 		Grid1D(const u8 *buffer, usz bytes):
-			ownsData(false), hw(bytes / sizeof(T)), data((T*)buffer)
+			ownsData(false), w(bytes / sizeof(T)), data((T*)buffer)
 		{
 			if (bytes % sizeof(T))
 				oic::System::log()->fatal("Invalid buffer size passed to Grid1D");
@@ -255,7 +255,7 @@ namespace oic {
 			data = nullptr; lhw = {};
 		}
 
-		Grid3D(Vec3usz lhw): lhw(lhw), data(new T[lhw[0] * lhw[1] * lwh[2]]{}){}
+		Grid3D(Vec3usz lhw): lhw(lhw), data(new T[lhw[0] * lhw[1] * lhw[2]]{}){}
 
 		Grid3D(const u8 *buffer, usz bytes, Vec2usz hw):
 			ownsData(false), lhw(bytes / sizeof(T) / hw[0] / hw[1], hw[0], hw[1]), data((T*)buffer)
@@ -283,7 +283,7 @@ namespace oic {
 			std::memcpy(data, list.data(), dataSize());
 		}
 
-		Grid3D(const Grid3D &g): lhw(g.lhw), data(g.data) ownsData(g.ownsData) {
+		Grid3D(const Grid3D &g): lhw(g.lhw), data(g.data), ownsData(g.ownsData) {
 			if (g.ownsData && g.data) {
 				data = new T[g.linearSize()];
 				std::memcpy(data, g.data, dataSize());
